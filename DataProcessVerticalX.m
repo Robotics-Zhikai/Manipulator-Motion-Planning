@@ -130,12 +130,11 @@ for z = 459.8:-lidu:-441
 end
 
 %%
-
-for times=1:100
+global yudu;
+for times=1:10
     %中间空洞的曲面方程
-    d = 13.7;
+    
     yudu = 8; %安全裕度
-    syms x y z t
 %     P0 = [469.6599 -407.6783  234.6203];
 %     P1 = [486.2498  251.1860  441.1052];
 %     P0 =[-39.2186 -612.9492  188.5821];
@@ -148,8 +147,53 @@ for times=1:100
 %     P1 = [397.1081  467.1360  301.1011];
 %     P1 = [286.8212  -10.8620 -207.7470];
 %     P0 = [139.3996  596.3981  317.4843];
-    P0 = RandGenratePointInWorkSpace(1,yudu);
-    P1 = RandGenratePointInWorkSpace(1,yudu);
+    P0 = RandGenratePointInWorkSpace(1);
+    P1 = RandGenratePointInWorkSpace(1);
+    
+    times
+    YESDirectReachable = IsDirectReachable(P0,P1)
+    
+%     pause(0.1);
+end
+
+
+  
+figure
+PointsSet = RandGenratePointInWorkSpace(5);
+plot3(PointsSet(:,1),PointsSet(:,2),PointsSet(:,3),'.');
+xlabel('x');
+ylabel('y');
+zlabel('z');
+
+
+%%
+%Planning
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%
+%functions
+function ManipulatorPlanning(BeginPoint,EndPoint)
+    
+end
+
+function YESDirectReachable = IsDirectReachable(P0,P1) %YESDirectReachable = 0 时不可直达，1时可直达
+    d = 13.7;
+    global yudu;
+    syms x y z t
     x = P0(1) + ( P1(1)-P0(1) ) * t;
     y = P0(2) + ( P1(2)-P0(2) ) * t;
     z = P0(3) + ( P1(3)-P0(3) ) * t;
@@ -254,15 +298,16 @@ for times=1:100
 
     equationSet ; %要求解的方程
     equationSet_trange ; %对应的t的取值范围
-    figure(7)
+    
     interval = 0.01;
-    times
+    
     for i = 1:size(equationSet,1)
-         
-        result1 = SolveEqualZero(equationSet(i),equationSet_trange(i,:));
+%         result1 = SolveEqualZero(equationSet(i),equationSet_trange(i,:));
         result2 = SolveEquavpasolve(equationSet(i),equationSet_trange(i,:));
         result3 = SolveEquaMuller(equationSet(i),equationSet_trange(i,:));
+        
         if isempty(result2)==1 && result3 == 1
+            figure(7)
             P0 
             P1
             result2
@@ -271,6 +316,7 @@ for times=1:100
             disp('s');
         end
         if isempty(result2)==0 && result3 == 0
+            figure(7)
             P0 
             P1
             result2
@@ -279,36 +325,20 @@ for times=1:100
             disp('s');
         end
         if size(result2,1)==3
-            
+            figure(7)
             result2
             result3
             plot([equationSet_trange(i,1):interval:equationSet_trange(i,2)],subs(equationSet(i),[equationSet_trange(i,1):interval:equationSet_trange(i,2)]),'-');
             result3 = SolveEquaMuller(-equationSet(i),equationSet_trange(i,:));
         end
-%         YES = IsExistZero(equationSet(i),equationSet_trange(i,:));
-
-%         hold on;
-%         plot(result,subs(equationSet(i),result),'o');
-%         hold on;
+        
+        if result3 == 1 %说明有交点
+            YESDirectReachable = 0;
+            return;
+        end
     end
-    
-%     pause(0.1);
+    YESDirectReachable = 1;
 end
-
-
-  
-figure
-PointsSet = RandGenratePointInWorkSpace(505,yudu);
-plot3(PointsSet(:,1),PointsSet(:,2),PointsSet(:,3),'.');
-xlabel('x');
-ylabel('y');
-zlabel('z');
-
-
-
-
-
-
 
 function YES = SolveEquaMuller(equation,range)%用抛物线法求是否有交点 存在性判断
     YES = IsExistZero(equation,range);
@@ -546,7 +576,8 @@ function RandNumber = RandGenerateNumber(a,b,Num)
     RandNumber = a + (b-a).*rand(Num,1);
 end
 
-function PointsSet = RandGenratePointInWorkSpace(num,yudu)
+function PointsSet = RandGenratePointInWorkSpace(num)
+    global yudu;
     if num == 0
         PointSet = [];
         return ;
