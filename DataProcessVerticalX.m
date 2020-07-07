@@ -131,11 +131,23 @@ end
 
 %%
 
-for times=1:10
+for times=1:100
     %中间空洞的曲面方程
     d = 13.7;
     yudu = 8; %安全裕度
     syms x y z t
+%     P0 = [469.6599 -407.6783  234.6203];
+%     P1 = [486.2498  251.1860  441.1052];
+%     P0 =[-39.2186 -612.9492  188.5821];
+%     P1 = [-186.8685 -525.1849  426.7955];
+%     P0 = [ -312.0857 -402.1795  227.4095];
+%     P1 = [  384.7074 -211.5290   97.1707];
+%     P0 = [-157.1233  541.9149  320.3161];
+%     P1 = [ -512.0443  128.0374 -189.1682];
+%     P0 = [ 144.2523   93.1530 -299.0419];
+%     P1 = [397.1081  467.1360  301.1011];
+%     P1 = [286.8212  -10.8620 -207.7470];
+%     P0 = [139.3996  596.3981  317.4843];
     P0 = RandGenratePointInWorkSpace(1,yudu);
     P1 = RandGenratePointInWorkSpace(1,yudu);
     x = P0(1) + ( P1(1)-P0(1) ) * t;
@@ -246,11 +258,34 @@ for times=1:10
     interval = 0.01;
     times
     for i = 1:size(equationSet,1)
-%         plot([equationSet_trange(i,1):interval:equationSet_trange(i,2)],subs(equationSet(i),[equationSet_trange(i,1):interval:equationSet_trange(i,2)]),'-');
-
+         
         result1 = SolveEqualZero(equationSet(i),equationSet_trange(i,:));
         result2 = SolveEquavpasolve(equationSet(i),equationSet_trange(i,:));
-        YES = IsExistZero(equationSet(i),equationSet_trange(i,:));
+        result3 = SolveEquaMuller(equationSet(i),equationSet_trange(i,:));
+        if isempty(result2)==1 && result3 == 1
+            P0 
+            P1
+            result2
+            result3
+            plot([equationSet_trange(i,1):interval:equationSet_trange(i,2)],subs(equationSet(i),[equationSet_trange(i,1):interval:equationSet_trange(i,2)]),'-');
+            disp('s');
+        end
+        if isempty(result2)==0 && result3 == 0
+            P0 
+            P1
+            result2
+            result3
+            plot([equationSet_trange(i,1):interval:equationSet_trange(i,2)],subs(equationSet(i),[equationSet_trange(i,1):interval:equationSet_trange(i,2)]),'-');
+            disp('s');
+        end
+        if size(result2,1)==3
+            
+            result2
+            result3
+            plot([equationSet_trange(i,1):interval:equationSet_trange(i,2)],subs(equationSet(i),[equationSet_trange(i,1):interval:equationSet_trange(i,2)]),'-');
+            result3 = SolveEquaMuller(-equationSet(i),equationSet_trange(i,:));
+        end
+%         YES = IsExistZero(equationSet(i),equationSet_trange(i,:));
 
 %         hold on;
 %         plot(result,subs(equationSet(i),result),'o');
@@ -261,9 +296,9 @@ for times=1:10
 end
 
 
-
+  
 figure
-PointsSet = RandGenratePointInWorkSpace(5050,yudu);
+PointsSet = RandGenratePointInWorkSpace(505,yudu);
 plot3(PointsSet(:,1),PointsSet(:,2),PointsSet(:,3),'.');
 xlabel('x');
 ylabel('y');
@@ -275,22 +310,79 @@ zlabel('z');
 
 
 
-function result = SolveEquaMuller(equation,range)%用抛物线法求交点
-    Xk = [range(1) (range(1)+range(2))/2 range(2)];
-    fxk = subs(equation,Xk(3));
-    fxkminus1 = subs(equation,Xk(2));
-    fxkminus2 = subs(equation,Xk(1));
-    fxk + ((fxk-fxkminus1)/(Xk(3)-Xk(2)))*(x-Xk(3)) + 
-      
+function YES = SolveEquaMuller(equation,range)%用抛物线法求是否有交点 存在性判断
+    YES = IsExistZero(equation,range);
+    if YES == 1
+        return;
+    end
+    Xk = [range(1) (range(1)+range(2))*(1/2) range(2)];
+%     range
+    yuzhi = 10^-3;
+%     result2 = SolveEquavpasolve(equation,range)
+    result = [];
+    while 1
+        xk = Xk(3);
+        xk_1 = Xk(2);
+        xk_2 = Xk(1);
+
+        fxk = subs(equation,xk);
+        fxk_1 = subs(equation,xk_1);
+        fxk_2 = subs(equation,xk_2);
+
+        omiga = DiffQuotFir(equation,xk,xk_1) + DiffQuotSec(equation,xk,xk_1,xk_2)*(xk-xk_1);
+    %     fxk + DiffQuotFir(equation,xk,xk_1)*(x-xk) + DiffQuotSec(xk,xk_1,xk_2)*(x-xk)*(x-xk_1); 
+        xkplus1ONE = xk - (2*fxk)/(omiga + ( omiga^2-4*fxk*DiffQuotSec(equation,xk,xk_1,xk_2) )^0.5);
+        xkplus1TWO = xk - (2*fxk)/(omiga - ( omiga^2-4*fxk*DiffQuotSec(equation,xk,xk_1,xk_2) )^0.5);
+
+        
+        if omiga >=0
+            xkplus1 = xkplus1ONE;
+        else
+            xkplus1 = xkplus1TWO;
+        end
+        xkplus1 = double(xkplus1);
+        Xk(1) = Xk(2);
+        Xk(2) = Xk(3);
+        Xk(3) = xkplus1;
+%         Xk
+        if abs(imag(xkplus1))>0.1
+            break;
+        end
+%         if ~isreal(xkplus1)
+%             break;
+%         end
+        if xkplus1<range(1)-0.01 || xkplus1>range(2)+0.01
+            break;
+        end
+        if abs(Xk(3)-Xk(2))<yuzhi 
+            result = Xk(3);
+            break;
+        end
+    end
+    
+    if isempty(result)==0
+        if result < range(1) || result >range(2) || abs(imag(result))>0.001
+            YES = 0;
+        else
+            YES = 1;
+        end
+    else
+        YES = 0;
+    end
+%     result 
 end
 
-function DQresult = DiffQuot(equation,xi,xj) %一阶差商计算公式
+function DQresult = DiffQuotFir(equation,xi,xj) %一阶差商计算公式
     fxi = subs(equation,xi);
     fxj = subs(equation,xj);
     DQresult = (fxi-fxj)/(xi-xj);
 end
 
-function YES = IsExistZero(equation,range) %判断与横轴交点的存在性 
+function DQresult = DiffQuotSec(equation,xi,xj,xk) %二阶差商公式
+    DQresult = (DiffQuotFir(equation,xi,xj)-DiffQuotFir(equation,xj,xk))/(xi-xk);
+end
+
+function YES = IsExistZero(equation,range) %判断与横轴交点的存在性 如果返回1，则肯定有交点，如果返回0，则不确定有没有交点。
     DuanDian1 = subs(equation,range(1));
     DuanDian2 = subs(equation,range(2));
     yuzhi = 10^-3;
@@ -317,12 +409,13 @@ function YES = IsExistZero(equation,range) %判断与横轴交点的存在性
     if Pan1 * Pan2 <= 0
         YES = 1;
     else
-        result = SolveEqualZero(equation,range);
-        if isempty(result) == 1
-            YES = 0;
-        else
-            YES = 1;
-        end
+%         result = SolveEqualZero(equation,range);
+%         if isempty(result) == 1
+%             YES = 0;
+%         else
+%             YES = 1;
+%         end
+        YES = 0;
     end
 end
 
