@@ -1,6 +1,7 @@
 %% kinematics
 clear
 clc
+close all
 % syms m0 m1 m2 m3 a0 a1 a2 a3  d1 d2 d3 d4 tool 
 syms k1 k2 k3 k4
 
@@ -91,11 +92,18 @@ DetJacobo
 pretty(DetJacobo)
 
 figure
-lidu = 0.1;
+lidu = 0.05;
 i = -1;
-for k2 = -40:lidu:44
-    for k3 = -130:lidu:-20
+for k2 = -40*pi/180:lidu:44*pi/180 %发现是没有奇异点的
+%     vpasolve((102301263*sin(k2))/5 - 1164168*sin(k3) - 44626440*cos(k2)*sin(k3) - (102301263*cos(k3)^2*sin(k2))/5 - (102301263*cos(k2)*cos(k3)*sin(k3))/5==0,k3,[-130*pi/180,-20*pi/180])
+    for k3 = -130*pi/180:lidu:-20*pi/180
         i = i+1;
+%         if abs((102301263*sin(k2))/5 - 1164168*sin(k3) - 44626440*cos(k2)*sin(k3) - (102301263*cos(k3)^2*sin(k2))/5 - (102301263*cos(k2)*cos(k3)*sin(k3))/5)<10^-1
+%             
+%             plot(i,k2,'.');
+%             hold on 
+%             pause(0.1);
+%         end
         plot(i,(102301263*sin(k2))/5 - 1164168*sin(k3) - 44626440*cos(k2)*sin(k3) - (102301263*cos(k3)^2*sin(k2))/5 - (102301263*cos(k2)*cos(k3)*sin(k3))/5,'.');
         hold on ;
         pause(0.1);

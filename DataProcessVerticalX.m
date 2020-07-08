@@ -131,7 +131,7 @@ end
 
 %%
 global yudu;
-for times=1:10
+for times=1:1
     %ÖÐ¼ä¿Õ¶´µÄÇúÃæ·½³Ì
     
     yudu = 8; %°²È«Ô£¶È
@@ -149,9 +149,14 @@ for times=1:10
 %     P0 = [139.3996  596.3981  317.4843];
     P0 = RandGenratePointInWorkSpace(1);
     P1 = RandGenratePointInWorkSpace(1);
-    
+%     P1 = [25.3962 -166.7241 -290.1079];
+%     P0 = [ -231.0167  413.1952  202.9482];
+%     P0 = [-56.9599  556.3866  397.9286];
+%     P1 = [ -184.3558 -288.7860 -111.3590];
+%     P0 =[ -136.7768   90.0319 -276.0100];
+%     P1 = [35.3672  372.5554  -25.3049];
     times
-    YESDirectReachable = IsDirectReachable(P0,P1)
+    YESDirectReachable = IsDirectReachable(P0,P1);
     
 %     pause(0.1);
 end
@@ -159,8 +164,12 @@ end
 
   
 figure
-PointsSet = RandGenratePointInWorkSpace(5);
+PointsSet = GenratePointInner(1500);
 plot3(PointsSet(:,1),PointsSet(:,2),PointsSet(:,3),'.');
+% pause(0.1);
+% hold on
+% PointsSet = GenratePointOuter(1500);
+% plot3(PointsSet(:,1),PointsSet(:,2),PointsSet(:,3),'.');
 xlabel('x');
 ylabel('y');
 zlabel('z');
@@ -168,9 +177,11 @@ zlabel('z');
 
 %%
 %Planning
-
-
-
+BeginPoint = RandGenratePointInWorkSpace(1);
+EndPoint = RandGenratePointInWorkSpace(1);
+PointsSequence = ManipulatorPlanningcartesian(BeginPoint,EndPoint)
+hold on
+plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
 
 
 
@@ -186,8 +197,109 @@ zlabel('z');
 
 %%
 %functions
-function ManipulatorPlanning(BeginPoint,EndPoint)
+
+function [Sequenceout,YES] = BFS(MapRelation,beginnum,endnum)
+    Sequenceout = [];
+    Sequence = [];
+    YES = 0;
+    if size(MapRelation{beginnum},2)==1 || size(MapRelation{endnum},2)==1
+        return;
+    end
+    index = 1:1:size(MapRelation,1);
+    isvisited = zeros(1,size(MapRelation,1));
+    Queue = [];
+    Queue = beginnum;
+    index(2,MapRelation{beginnum}(2:end)) = beginnum;
+    isvisited(beginnum) = 1;
+%     prePointer = beginnum;
     
+    while isempty(Queue)==0 
+        temp = find ( isvisited(MapRelation{Queue(1)}(2:end))==0 );
+        add = MapRelation{Queue(1)}(2:end);
+        Queue = [Queue add(temp)];
+        isvisited(add(temp))=1;
+
+        index(2,add(temp)) = Queue(1);
+        if Queue(1) == endnum
+            prePointer = index(2,endnum);
+            Sequence = [Sequence prePointer];
+            while prePointer~=beginnum
+                prePointer = index(2,prePointer);
+                Sequence = [Sequence prePointer];
+            end
+            break;
+        end
+        Queue(1) = [];
+    end
+    if isempty(Sequence) == 1
+        YES = 0;
+    else
+        YES = 1;
+%         Sequenceout = beginnum;
+        for i = size(Sequence,2):-1:1
+            Sequenceout = [Sequenceout Sequence(i)];
+        end
+        Sequenceout = [Sequenceout endnum];
+    end
+end
+
+function PointsSequence = ManipulatorPlanningcartesian(BeginPoint,EndPoint) %µÑ¿¨¶û×ø±êÏµµÄ¹æ»®
+    PointsSequence = [];
+    if IsDirectReachable(BeginPoint,EndPoint) == 1
+        PointsSequence = [BeginPoint;EndPoint];
+    else
+        AllPoints = [BeginPoint;EndPoint];
+        if IsDirectReachable(BeginPoint,EndPoint)==1
+            MapRelation = [{[1 2]};{[2 1]}];
+        else
+            MapRelation = [{1};{2}];
+        end
+        
+        while 1
+            Point = RandGenratePointInWorkSpace(1);
+            AllPoints = [AllPoints;Point];
+%             figure(5)
+%             hold on
+%             plot3( Point(1) , Point(2)  ,Point(3),'o');
+            MapRelation = [MapRelation;size(MapRelation,1)+1];
+            for i=size(MapRelation,1)-1:-1:1
+                i
+                d = 1.5*norm(BeginPoint - EndPoint);
+                if norm(AllPoints(end,:)-AllPoints(i,:))<d
+                    if IsDirectReachable(AllPoints(end,:),AllPoints(i,:))==1
+                        MapRelation{end} = [MapRelation{end} i];
+                        MapRelation{i} = [MapRelation{i} size(MapRelation,1)];
+                    end
+                end
+            end
+            [Sequence,YES] = BFS(MapRelation,1,2);
+            if YES == 1
+                PointsSequence = AllPoints(Sequence,:);
+                break;
+            end
+        end
+        
+        
+        
+        
+        
+%         MapRelation = 1;
+%         Point = RandGenratePointInWorkSpace(1);
+%         AllPoints = [AllPoints;Point];
+%         MapRelation = [MapRelation;2];
+%         for i = size(AllPoints,1)-1:-1:1
+%             if IsDirectReachable(AllPoints(end,:),AllPoints(i,:))==1
+%                 
+%             end
+%         end
+%         while ~(IsDirectReachable(Point,BeginPoint)==1 && IsDirectReachable(Point,EndPoint)==1)
+% %             a = [IsDirectReachable(Point,BeginPoint) IsDirectReachable(Point,EndPoint)]
+%             Point = RandGenratePointInWorkSpace(1);
+%             AllPoints = [AllPoints;Point];
+%         end
+%         AllPoints = [AllPoints;EndPoint];
+%         PointsSequence = [BeginPoint; Point; EndPoint];
+    end
 end
 
 function YESDirectReachable = IsDirectReachable(P0,P1) %YESDirectReachable = 0 Ê±²»¿ÉÖ±´ï£¬1Ê±¿ÉÖ±´ï
@@ -314,6 +426,7 @@ function YESDirectReachable = IsDirectReachable(P0,P1) %YESDirectReachable = 0 Ê
             result3
             plot([equationSet_trange(i,1):interval:equationSet_trange(i,2)],subs(equationSet(i),[equationSet_trange(i,1):interval:equationSet_trange(i,2)]),'-');
             disp('s');
+             result3 = SolveEquaMuller(equationSet(i),equationSet_trange(i,:));
         end
         if isempty(result2)==0 && result3 == 0
             figure(7)
@@ -609,8 +722,71 @@ function PointsSet = RandGenratePointInWorkSpace(num)
     end
 end
 
+function PointsSet = GenratePointInner(num)%Éú³É·Ö²¼ÔÚ¹¤×÷¿Õ¼äÄÚ±ÚµÄµã
+    global yudu;
+    if num == 0
+        PointSet = [];
+        return ;
+    end
+    r = RandGenerateNumber(-441.0118,459.8,num);
+    PointsSet = [];
+    for i = 1:size(r,1)
+        z = r(i);
+        if z<=459.8 && z>=165.25
+            up = -0.0009554*z^2+0.1704*z+662.7 - yudu;
+            down = (-0.3377*z^2+810.5*z-90990)/(z-74.85) + yudu;
+            
+        end
+        if z<165.25 && z>=-274.405
+            up = -0.000818*z^2+0.0902*z+671.8 - yudu;
+            down = 2.897*10^-6*z^3-0.001479*z^2+0.1196*z+370 + yudu;
+            
+        end
+        if z<-274.405 && z>=-441.0118
+            up = 2.453*10^-5*z^3+0.02358*z^2+8.212*z+1572 - yudu;
+            down = -3.011*10^-5*z^3-0.02679*z^2-8.276*z-721.3 + yudu;
+            
+        end
+        up = down      ;
+%         down = up;
+        theta = RandGenerateNumber(0,2*pi,1);
+        y0 = RandGenerateNumber(down,up,1);
+        PointsSet = [PointsSet;[13.7 * cos(theta) - y0 * sin(theta) , 13.7 * sin(theta) + y0 * cos(theta) , z]];
+    end
+end
 
-
+function PointsSet = GenratePointOuter(num) %Éú³É·Ö²¼ÔÚ¹¤×÷¿Õ¼äÍâ±ÚµÄµã
+    global yudu;
+    if num == 0
+        PointSet = [];
+        return ;
+    end
+    r = RandGenerateNumber(-441.0118,459.8,num);
+    PointsSet = [];
+    for i = 1:size(r,1)
+        z = r(i);
+        if z<=459.8 && z>=165.25
+            up = -0.0009554*z^2+0.1704*z+662.7 - yudu;
+            down = (-0.3377*z^2+810.5*z-90990)/(z-74.85) + yudu;
+            
+        end
+        if z<165.25 && z>=-274.405
+            up = -0.000818*z^2+0.0902*z+671.8 - yudu;
+            down = 2.897*10^-6*z^3-0.001479*z^2+0.1196*z+370 + yudu;
+            
+        end
+        if z<-274.405 && z>=-441.0118
+            up = 2.453*10^-5*z^3+0.02358*z^2+8.212*z+1572 - yudu;
+            down = -3.011*10^-5*z^3-0.02679*z^2-8.276*z-721.3 + yudu;
+            
+        end
+%         up = down      ;
+        down = up;
+        theta = RandGenerateNumber(0,2*pi,1);
+        y0 = RandGenerateNumber(down,up,1);
+        PointsSet = [PointsSet;[13.7 * cos(theta) - y0 * sin(theta) , 13.7 * sin(theta) + y0 * cos(theta) , z]];
+    end
+end
 
 
 
