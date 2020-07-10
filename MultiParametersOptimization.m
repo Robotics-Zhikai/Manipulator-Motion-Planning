@@ -56,7 +56,7 @@ clc
 clear
 close all
 
-syms ta tb amax t v0 theta0 tf
+syms ta tb amax t v0 theta0 tf k
 % fun = @(x) x.^2
 pretty( int (int((amax/ta)*t,t,0,t),t,0,ta) )
 pretty( int ( int((amax/ta)*t,t,0,ta) + int(amax,t,ta,t) ,t,ta,tb-ta ) )
@@ -71,7 +71,16 @@ thetab = theta0 + (amax*tb^2)/2 - (amax*ta*tb)/2
 thetah = ((tb-ta)*amax)*(tf/2-tb)+thetab
 thetaf = theta0+2*(thetah-theta0)
 thetaf = collect(thetaf,tb) %这是需要满足的关系式 thetaf是已知量
+tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k))
+% tb = (amax*ta + amax*tf - (amax*(amax*ta^2 - 2*amax*ta*tf + amax*tf^2 + 4*theta0 - 4*thetaf))^(1/2))/(2*amax)
 
+clc
+clear
+close all
+
+syms tb amax t v0 theta0 tf k
+
+ta = k*tb;
 % t>=0&&t<ta
 thetat = theta0 + int (int((amax/ta)*t,t,0,t),t,0,t)
 % t>=ta && t<tb-ta

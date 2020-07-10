@@ -177,6 +177,16 @@ zlabel('z');
 
 %%
 %Planning
+%joint space
+PointsSequence = ManipulatorPlanningJointSpace(50,13,10,500,30,0.1);
+plot(PointsSequence(1,:),PointsSequence(2,:),'.');
+
+position=[-7.9299606329480514e-07 -1.7005665642058626e-06 0.99999999999823963 13.700648789105546;0.34201612592369207 -0.93969408298998514 -1.3267948966763650e-06 156.68473668902345;0.93969408299058710 0.34201612592203784 1.3267948966775328e-06 -274.40499567516673;0 0 0 1];
+jointAngle = InverseKinematics(position)
+[position1,position2] = ForwardKinematics(jointAngle)
+
+
+%cartesian space
 BeginPoint = RandGenratePointInWorkSpace(1);
 EndPoint = RandGenratePointInWorkSpace(1);
 PointsSequence = ManipulatorPlanningcartesian(BeginPoint,EndPoint)
@@ -197,6 +207,333 @@ plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
 
 %%
 %functions
+function matrixtool = MatrixTool(tool)
+	matrixtool(1,1) = 1.0;
+	matrixtool(1,2) = 0.0;
+	matrixtool(1,3) = 0.0;
+	matrixtool(1,4) = tool;
+
+	matrixtool(2,1) = 0.0;
+	matrixtool(2,2) = 1.0;
+	matrixtool(2,3) = 0.0;
+	matrixtool(2,4) = 0.0;
+
+	matrixtool(3,1) = 0.0;
+	matrixtool(3,2) = 0.0;
+	matrixtool(3,3) = 1.0;
+	matrixtool(3,4) = 0.0;
+
+	matrixtool(4,1) = 0.0;
+	matrixtool(4,2) = 0.0;
+	matrixtool(4,3) = 0.0;
+	matrixtool(4,4) = 1.0;
+end
+
+function TransMatrix = MatrixT(alpha, a, theta, d )
+	TransMatrix(1,1) = cos(theta);
+	TransMatrix(1,2) = -sin(theta);
+	TransMatrix(1,3) = 0.0;
+	TransMatrix(1,4) = a;
+
+	TransMatrix(2,1) = sin(theta)*cos(alpha);
+	TransMatrix(2,2) = cos(theta)*cos(alpha);
+	TransMatrix(2,3) = -sin(alpha);
+	TransMatrix(2,4) = -sin(alpha)*d;
+
+	TransMatrix(3,1) = sin(theta)*sin(alpha);
+	TransMatrix(3,2) = cos(theta)*sin(alpha);
+	TransMatrix(3,3) = cos(alpha);
+	TransMatrix(3,4) = cos(alpha)*d;
+
+	TransMatrix(4,1) = 0.0;
+	TransMatrix(4,2) = 0.0;
+	TransMatrix(4,3) = 0.0;
+	TransMatrix(4,4) = 1.0;
+end
+
+% //position1为铲斗旋转中心点坐标，position2为铲齿最末端点坐标
+% void ForwardKinematics(double *jointangle, double *position1, double *position2)
+function [position1,position2] = ForwardKinematics(jointangle)
+% 	double m[4], a[4], theta[4], d[4], tool;
+% 	double m_matrix1[16], m_matrix2[16], m_matrix3[16], m_matrix4[16], m_matrix5[16];
+% 	double m_matrixtemp1[16], m_matrixtemp2[16], m_matrixtemp3[16], m_matrixtemp4[16];
+% 	double m_dRPY[3];
+    ZERO = 10^-6;
+    M_PI = pi;
+    M_PI_2 = pi/2;
+	m(1) = 0.0*M_PI / 180.0;
+	m(2) = 90.0*M_PI / 180.0;
+	m(3) = 0.0*M_PI / 180.0;
+	m(4) = 0.0*M_PI / 180.0;
+
+	a(1) = 0.0;
+	a(2) = 12.0;
+	a(3) = 460.0;
+	a(4) = 210.9;
+
+	d(1) = 57.9;
+	d(2) = 13.7;%//13.7
+	d(3) = 0.0;
+	d(4) = 0.0;
+	tool = 123.5;
+
+	theta(1) = jointangle(1) * M_PI / 180.0;
+	theta(2) = jointangle(2) * M_PI / 180.0;
+	theta(3) = jointangle(3) * M_PI / 180.0;
+	theta(4) = jointangle(4) * M_PI / 180.0;
+
+	m_matrix1 = MatrixT(m(1), a(1), theta(1), d(1));
+	m_matrix2 = MatrixT(m(2), a(2), theta(2), d(2));
+	m_matrix3 = MatrixT(m(3), a(3), theta(3), d(3));
+	m_matrix4 = MatrixT(m(4), a(4), theta(4), d(4));
+	m_matrix5 = MatrixTool(tool);
+
+    m_matrixtemp1 = m_matrix1*m_matrix2;
+    m_matrixtemp2 = m_matrixtemp1*m_matrix3;
+    m_matrixtemp3 = m_matrixtemp2*m_matrix4;
+    m_matrixtemp4 = m_matrixtemp3*m_matrix5;
+	
+
+% 	//欧拉角A、B、C begin
+	m_dRPY(2) = mathAtan2(-m_matrixtemp4(3,1), sqrt(m_matrixtemp4(1,1) * m_matrixtemp4(1,1) + m_matrixtemp4(2,1) * m_matrixtemp4(2,1)));%//欧拉角B
+
+    if ((m_dRPY(2)<M_PI_2 + ZERO) && (m_dRPY(2)>M_PI_2 - ZERO))
+        m_dRPY(3) = mathAtan2(m_matrixtemp4(1,2), m_matrixtemp4(2,2));
+		m_dRPY(1) = 0.0;
+    else
+        if ((m_dRPY(2)<-M_PI_2 + ZERO) && (m_dRPY(2)>-M_PI_2 - ZERO))
+            m_dRPY(3) = -mathAtan2(m_matrixtemp4(1,2), m_matrixtemp4(2,2));%//欧拉角A
+            m_dRPY(1) = 0.0;%//欧拉角C
+        else
+            m_dRPY(3) = mathAtan2(m_matrixtemp4(2,1) / cos(m_dRPY(2)), m_matrixtemp4(1,1) / cos(m_dRPY(2)));%//欧拉角A
+            m_dRPY(1) = mathAtan2(m_matrixtemp4(3,2) / cos(m_dRPY(2)), m_matrixtemp4(3,3) / cos(m_dRPY(2)));%//欧拉角C
+        end
+    end
+
+% 	//欧拉角A、B、C end
+
+% 	//printf("\nEuler%f %f %f\n", m_dRPY[0] * 180.0 / M_PI, m_dRPY[1] * 180.0 / M_PI, m_dRPY[2] * 180.0 / M_PI);
+
+    position1 = m_matrixtemp3;%//铲斗旋转中心坐标
+    position2 = m_matrixtemp4;%//末端铲齿坐标
+end
+
+function result = mathAtan2(y,x)
+    ZERO = 10^-6;
+    if (abs(y) < ZERO)
+		y = 0.0;
+    end
+    if (abs(x) < ZERO)
+        x = 0.0;
+    end
+    result = atan2(y, x);
+end
+
+function result = pow(a,b)
+    result = a^b;
+end
+
+function jointAngle = InverseKinematics(position)
+    ZERO = 10^-6;
+    M_PI = pi;
+%     nx, ny, nz;
+%     ox, oy, oz;
+% 	ax, ay, az;
+% 	px, py, pz;
+%     m[4], a[4], theta[4], d[4], tool;
+% 	mTempAngleOne[2];
+    m(1) = 0.0*M_PI / 180.0;
+	m(2) = 90.0*M_PI / 180.0;
+	m(3) = 0.0*M_PI / 180.0;
+	m(4) = 0.0*M_PI / 180.0;
+    
+    a(1) = 0.0;
+	a(2) = 12.0;
+	a(3) = 460.0;
+	a(4) = 210.9;
+	tool = 123.5;
+
+	d(1) = 57.9;
+	d(2) = 13.7;%//13.7
+	d(3) = 0.0;
+	d(4) = 0.0;
+    
+    nx = position(1,1);
+	ny = position(2,1);
+	nz = position(3,1);
+
+	ox = position(1,2);
+	oy = position(2,2);
+	oz = position(3,2);
+
+	ax = position(1,3);
+	ay = position(2,3);
+	az = position(3,3);
+
+	px = position(1,4);
+	py = position(2,4);
+	pz = position(3,4);
+
+    mTempAngleOne(1) = mathAtan2(py, px) - mathAtan2(-d(2), (px*px + py*py - d(2) * d(2))^(1/2));
+	mTempAngleOne(2) = mathAtan2(py, px) - mathAtan2(-d(2), -(px*px + py*py - d(2) * d(2))^(1/2));
+    
+%     //    printf("\n mTempAngleOne=%f %f\n",mTempAngleOne[0]*180.0/M_PI,mTempAngleOne[1]*180.0/M_PI);
+	jointAngle(1) = mTempAngleOne(1);
+	Mtemp1 = (pow(cos(jointAngle(1))*px + sin(jointAngle(1))*py - a(2), 2) + pow(pz - d(1), 2) - pow(a(3), 2) - pow(a(4), 2)) / (2 * a(3) * a(4));
+    
+%     //    printf("\nMtemp1=%f\n",Mtemp1);
+
+	jointAngle(3) = -abs(acos(Mtemp1));
+% 	//    printf("\njointAngle[2]=%f\n",jointAngle[2]*180.0/M_PI);
+
+%     double tempm, tempn, tempTwo1;
+	tempm = px*cos(jointAngle(1)) + py*sin(jointAngle(1)) - a(2);
+	tempn = pz - d(1);
+    if abs(tempm*tempm + tempn*tempn) <= ZERO
+        disp("error!");
+        return ;
+    else
+        tempTwo1 = ((a(3) + a(4) * cos(jointAngle(3)))*tempn - a(4) * sin(jointAngle(3))*tempm) / (tempm*tempm + tempn*tempn);
+    end
+	
+	jointAngle(2) = asin(tempTwo1);
+
+% 	double tempfour1, tempfour2;
+	tempfour1 = -(cos(jointAngle(1))*cos(jointAngle(2) + jointAngle(3))*ox + sin(jointAngle(1))*cos(jointAngle(2) + jointAngle(3))*oy + sin(jointAngle(2) + jointAngle(3))*oz);
+	tempfour2 = -cos(jointAngle(1))*sin(jointAngle(2) + jointAngle(3))*ox - sin(jointAngle(1))*sin(jointAngle(2) + jointAngle(3))*oy + cos(jointAngle(2) + jointAngle(3))*oz;
+	jointAngle(4) = mathAtan2(tempfour1, tempfour2);
+
+    for i=1:4
+        jointAngle(i) = jointAngle(i) * 180.0 / M_PI;
+    end
+end
+
+function PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VMAX,SampleTime) %默认初始末点速度为0，加速度为0;
+    PointsSequence = [];
+    k = 0.1; %k=ta/tb,取值范围为[0,0.5]
+    if theta0 == thetaf
+        for i=1:tf/SampleTime+1
+            PointsSequence(1,i) = (i-1)*SampleTime;
+            PointsSequence(2,i) = theta0;
+        end
+        return;
+    end
+    if (theta0<thetaf)
+        a_LowerBound = 4*(theta0-thetaf)/( (k-1)*tf^2 );
+        a_Uppertemp = VMAX^2 / ( (1-k)*(theta0-thetaf+tf*VMAX) );
+        if a_Uppertemp<a_LowerBound
+            erro('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+            return;
+        end
+        if a_Uppertemp>=AMAX
+            if AMAX<a_LowerBound
+                erro('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
+                return;
+            end
+            a_UpperBound = AMAX;
+        else
+            if a_Uppertemp<a_LowerBound
+                erro('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+                return;
+            end
+            a_UpperBound = a_Uppertemp;
+        end
+        amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+        tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k));
+        ta = k*tb;
+        for i=1:tf/SampleTime+1
+            PointsSequence(1,i) = (i-1)*SampleTime;
+            t = PointsSequence(1,i);
+            if t>=0&&t<ta
+                PointsSequence(2,i) = (amax*t^3)/(6*k*tb) + theta0;
+                continue;
+            end
+            if t>=ta && t<tb-ta
+                PointsSequence(2,i) = theta0 + (amax*t*(t - k*tb))/2 + (amax*k^2*tb^2)/6;
+                continue;
+            end
+            if t>=tb-ta && t<tb
+                PointsSequence(2,i) = theta0 + (amax*t^2)/(2*k) + (amax*k^2*tb^2)/6 + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*t*k^2 - 6*t*k + 3*t))/(6*k) - (amax*t^3)/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+                continue;
+            end
+            if t>=tb && t<tf-tb
+                PointsSequence(2,i) = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 + amax*(tb - k*tb)*(t - tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+                continue;
+            end
+            if t>=tf-tb && t<tf-tb+ta
+                PointsSequence(2,i) = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k) - (amax*(t + tb - tf)*(6*k^2*tb^2 - 6*k*tb^2 + t^2 + 2*t*tb - 2*t*tf + tb^2 - 2*tb*tf + tf^2))/(6*k*tb);
+                continue;
+            end
+            if t>=tf-tb+ta && t<tf-ta
+                PointsSequence(2,i) = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - (amax*(t + tb - tf - k*tb)*(t - tb - tf + 2*k*tb))/2 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+                continue;
+            end
+            if t>=tf-ta && t<=tf
+                PointsSequence(2,i) = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/3 - amax*(2*tb - tf)*(tb - k*tb) + amax*(tb - k*tb)*(tb - 2*k*tb) - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) + (amax*(t^3 - 3*t^2*tf + 3*t*tf^2 - tf^3))/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+                continue;
+            end
+        end
+    else
+        thetatemp = thetaf;
+        thetaf = theta0;
+        theta0 = thetatemp;
+        a_LowerBound = 4*(theta0-thetaf)/( (k-1)*tf^2 );
+        a_Uppertemp = VMAX^2 / ( (1-k)*(theta0-thetaf+tf*VMAX) );
+        if a_Uppertemp<a_LowerBound
+            erro('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+            return;
+        end
+        if a_Uppertemp>=AMAX
+            if AMAX<a_LowerBound
+                erro('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
+                return;
+            end
+            a_UpperBound = AMAX;
+        else
+            if a_Uppertemp<a_LowerBound
+                erro('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+                return;
+            end
+            a_UpperBound = a_Uppertemp;
+        end
+        amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+        tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k));
+        ta = k*tb;
+        for i=1:tf/SampleTime+1
+            PointsSequence(1,i) = (i-1)*SampleTime;
+            t = PointsSequence(1,i);
+            t = 2*(tf/2)-t;
+            if t>=0&&t<ta
+                PointsSequence(2,i) = (amax*t^3)/(6*k*tb) + theta0;
+                continue;
+            end
+            if t>=ta && t<tb-ta
+                PointsSequence(2,i) = theta0 + (amax*t*(t - k*tb))/2 + (amax*k^2*tb^2)/6;
+                continue;
+            end
+            if t>=tb-ta && t<tb
+                PointsSequence(2,i) = theta0 + (amax*t^2)/(2*k) + (amax*k^2*tb^2)/6 + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*t*k^2 - 6*t*k + 3*t))/(6*k) - (amax*t^3)/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+                continue;
+            end
+            if t>=tb && t<tf-tb
+                PointsSequence(2,i) = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 + amax*(tb - k*tb)*(t - tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+                continue;
+            end
+            if t>=tf-tb && t<tf-tb+ta
+                PointsSequence(2,i) = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k) - (amax*(t + tb - tf)*(6*k^2*tb^2 - 6*k*tb^2 + t^2 + 2*t*tb - 2*t*tf + tb^2 - 2*tb*tf + tf^2))/(6*k*tb);
+                continue;
+            end
+            if t>=tf-tb+ta && t<tf-ta
+                PointsSequence(2,i) = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - (amax*(t + tb - tf - k*tb)*(t - tb - tf + 2*k*tb))/2 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+                continue;
+            end
+            if t>=tf-ta && t<=tf
+                PointsSequence(2,i) = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/3 - amax*(2*tb - tf)*(tb - k*tb) + amax*(tb - k*tb)*(tb - 2*k*tb) - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) + (amax*(t^3 - 3*t^2*tf + 3*t*tf^2 - tf^3))/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+                continue;
+            end
+        end
+    end
+end
 
 function [Sequenceout,YES] = BFS(MapRelation,beginnum,endnum)
     Sequenceout = [];
