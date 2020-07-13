@@ -164,7 +164,7 @@ end
 
   
 figure
-PointsSet = GenratePointInner(1500);
+PointsSet = GenratePointInner(2500);
 plot3(PointsSet(:,1),PointsSet(:,2),PointsSet(:,3),'.');
 % pause(0.1);
 % hold on
@@ -178,17 +178,120 @@ zlabel('z');
 %%
 %Planning
 %joint space
-PointsSequence = ManipulatorPlanningJointSpace(50,13,10,500,30,0.1);
-plot(PointsSequence(1,:),PointsSequence(2,:),'.');
+% BeginPoint=[-85.1083  305.1562 -234.3325];
+% EndPoint = [-505.7061  -19.8488  209.6305];
+BeginPoint = RandGenratePointInWorkSpace(1);
+EndPoint = RandGenratePointInWorkSpace(1);
+
+% PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VMAX,SampleTime)
+jointAngleBegin = InverseKinematicsPos2Angle(BeginPoint');
+jointAngleEnd = InverseKinematicsPos2Angle(EndPoint');
+for i=1:size(jointAngleBegin,2)
+    PointsAngleSequence{i} = ManipulatorPlanningJointSpace(jointAngleBegin(i),jointAngleEnd(i),10,500,30,0.1);
+end
+Combination = CombineAngleSequences(PointsAngleSequence);
+recordEmptyi = [];
+flagrecord = 1;
+for i =1:size(Combination,2)
+    k4_1 = -(Combination(3,i)+Combination(4,i));
+    k4_2 = -180-(Combination(3,i)+Combination(4,i));
+    k4result = [];
+    if k4_1>=-100&&k4_1<=30
+         k4result = [k4result;k4_1];
+    end
+    if k4_2>=-100&&k4_2<=30
+         k4result = [k4result;k4_2];
+    end
+    if isempty(k4result)==1 
+        k4result = 0;
+        if flagrecord == 1
+            recordEmptyi = [recordEmptyi i]
+            flagrecord = 0;
+        end
+        
+%         if i~=1 
+%             last = Combination(5,i-1)
+%             if abs(last+100)<abs(last-30)
+%                 k4result = -100;
+%             else
+%                 k4result = 30;
+%             end
+% %             next = Combination(5,i+1)
+%         else
+%             k4result = 30;
+%         end
+    else
+        if flagrecord == 0
+            flagrecord = 1;
+            recordEmptyi = [recordEmptyi i-1]
+        end
+    end
+    Combination(5,i) = k4result;
+end
+if mod(size(recordEmptyi,2),2)==1
+    recordEmptyi = [recordEmptyi size(Combination,2)];
+end
+initk4 = 30;
+for i=1:size(recordEmptyi,2)/2
+    leftnum = recordEmptyi(2*i-1);
+    rightnum = recordEmptyi(2*i);
+    if leftnum == 1 && rightnum == size(Combination,2)
+        for j=1:size(Combination,2)
+            Combination(5,j) = initk4;
+        end
+    else
+        if leftnum == 1
+            LEFT = initk4;
+            RIGHT = Combination(5,rightnum+1);
+        else
+            if rightnum == size(Combination,2)
+                LEFT = Combination(5,leftnum-1);
+                RIGHT = LEFT;
+            else
+                LEFT = Combination(5,leftnum-1);
+                RIGHT = Combination(5,rightnum+1);
+            end
+        end 
+        
+        for j=leftnum:rightnum
+            Combination(5,j) = LEFT+(j-leftnum)*((RIGHT-LEFT)/(rightnum-leftnum));
+        end
+    end
+end
+
+% PointsSequence = [];
+% hold on;
+% for i = 1:size(Combination,2)
+%     [position1,position2] = ForwardKinematics(Combination(2:5,i));
+%     plot3(position1(1,4),position1(2,4),position1(3,4),'o');
+%     plot3([position1(1,4),position2(1,4)],[position1(2,4),position2(2,4)],[position1(3,4),position2(3,4)],'-');
+%     pause(0.1)
+% end
+% 
+% 
+% plot(PointsSequence(1,:),PointsSequence(2,:),'.');
 
 position=[-7.9299606329480514e-07 -1.7005665642058626e-06 0.99999999999823963 13.700648789105546;0.34201612592369207 -0.93969408298998514 -1.3267948966763650e-06 156.68473668902345;0.93969408299058710 0.34201612592203784 1.3267948966775328e-06 -274.40499567516673;0 0 0 1];
 jointAngle = InverseKinematics(position)
-[position1,position2] = ForwardKinematics(jointAngle)
 
+
+% yuzhithis = 0.0001
+% for k0 = -179:180
+%     for k1=-40:1:44
+%         for k2 = -130:1:-20
+%             for k3=-100:30
+%                 [position1,position2] = ForwardKinematics([k0 k1 k2 k3]);
+%                 if abs(position1(1,1))<yuzhithis && abs(position1(1,2))<yuzhithis && abs(position1(1,3))-1<yuzhithis && ...
+%                         abs(position1(2,3))<yuzhithis && abs(position1(3,3))<yuzhithis && position1(2,1)==position1(3,2) && ...
+%                             abs(position1(3,1)+position1(2,2))<yuzhithis && cos(asin(position1(2,1)))==position(3,1)
+%                         disp(';');
+%                 end
+%             end
+%         end
+%     end
+% end
 
 %cartesian space
-BeginPoint = RandGenratePointInWorkSpace(1);
-EndPoint = RandGenratePointInWorkSpace(1);
 PointsSequence = ManipulatorPlanningcartesian(BeginPoint,EndPoint)
 hold on
 plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
@@ -207,6 +310,14 @@ plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
 
 %%
 %functions
+
+function Combination = CombineAngleSequences(PointsAngleSequence) %把每个独立的角度序列组合在一起 必须保证待组合的序列长度相同且时间跨度相同
+    Combination = PointsAngleSequence{1}(1,:);
+    for i = 1:size(PointsAngleSequence,2)
+        Combination = [Combination;PointsAngleSequence{i}(2,:)];
+    end
+end
+
 function matrixtool = MatrixTool(tool)
 	matrixtool(1,1) = 1.0;
 	matrixtool(1,2) = 0.0;
@@ -333,6 +444,79 @@ function result = pow(a,b)
     result = a^b;
 end
 
+function jointAngle = InverseKinematicsPos2Angle(position)%输入为列向量，输出为前三个角的角度 为横向量
+    ZERO = 10^-6;
+    M_PI = pi;
+%     nx, ny, nz;
+%     ox, oy, oz;
+% 	ax, ay, az;
+% 	px, py, pz;
+%     m[4], a[4], theta[4], d[4], tool;
+% 	mTempAngleOne[2];
+    m(1) = 0.0*M_PI / 180.0;
+	m(2) = 90.0*M_PI / 180.0;
+	m(3) = 0.0*M_PI / 180.0;
+	m(4) = 0.0*M_PI / 180.0;
+    
+    a(1) = 0.0;
+	a(2) = 12.0;
+	a(3) = 460.0;
+	a(4) = 210.9;
+	tool = 123.5;
+
+	d(1) = 57.9;
+	d(2) = 13.7;%//13.7
+	d(3) = 0.0;
+	d(4) = 0.0;
+    
+%     nx = position(1,1);
+% 	ny = position(2,1);
+% 	nz = position(3,1);
+% 
+% 	ox = position(1,2);
+% 	oy = position(2,2);
+% 	oz = position(3,2);
+% 
+% 	ax = position(1,3);
+% 	ay = position(2,3);
+% 	az = position(3,3);
+
+	px = position(1);
+	py = position(2);
+	pz = position(3);
+
+    mTempAngleOne(1) = mathAtan2(py, px) - mathAtan2(-d(2), (px*px + py*py - d(2) * d(2))^(1/2));
+	mTempAngleOne(2) = mathAtan2(py, px) - mathAtan2(-d(2), -(px*px + py*py - d(2) * d(2))^(1/2));
+    
+	jointAngle(1) = mTempAngleOne(1);
+	Mtemp1 = (pow(cos(jointAngle(1))*px + sin(jointAngle(1))*py - a(2), 2) + pow(pz - d(1), 2) - pow(a(3), 2) - pow(a(4), 2)) / (2 * a(3) * a(4));
+    
+
+	jointAngle(3) = -abs(acos(Mtemp1));
+
+
+%     double tempm, tempn, tempTwo1;
+	tempm = px*cos(jointAngle(1)) + py*sin(jointAngle(1)) - a(2);
+	tempn = pz - d(1);
+    if abs(tempm*tempm + tempn*tempn) <= ZERO
+        disp("error!");
+        return ;
+    else
+        tempTwo1 = ((a(3) + a(4) * cos(jointAngle(3)))*tempn - a(4) * sin(jointAngle(3))*tempm) / (tempm*tempm + tempn*tempn);
+    end
+	
+	jointAngle(2) = asin(tempTwo1);
+
+% 	double tempfour1, tempfour2;
+% 	tempfour1 = -(cos(jointAngle(1))*cos(jointAngle(2) + jointAngle(3))*ox + sin(jointAngle(1))*cos(jointAngle(2) + jointAngle(3))*oy + sin(jointAngle(2) + jointAngle(3))*oz);
+% 	tempfour2 = -cos(jointAngle(1))*sin(jointAngle(2) + jointAngle(3))*ox - sin(jointAngle(1))*sin(jointAngle(2) + jointAngle(3))*oy + cos(jointAngle(2) + jointAngle(3))*oz;
+% 	jointAngle(4) = mathAtan2(tempfour1, tempfour2);
+
+    for i=1:3
+        jointAngle(i) = jointAngle(i) * 180.0 / M_PI;
+    end
+end
+
 function jointAngle = InverseKinematics(position)
     ZERO = 10^-6;
     M_PI = pi;
@@ -377,14 +561,12 @@ function jointAngle = InverseKinematics(position)
     mTempAngleOne(1) = mathAtan2(py, px) - mathAtan2(-d(2), (px*px + py*py - d(2) * d(2))^(1/2));
 	mTempAngleOne(2) = mathAtan2(py, px) - mathAtan2(-d(2), -(px*px + py*py - d(2) * d(2))^(1/2));
     
-%     //    printf("\n mTempAngleOne=%f %f\n",mTempAngleOne[0]*180.0/M_PI,mTempAngleOne[1]*180.0/M_PI);
 	jointAngle(1) = mTempAngleOne(1);
 	Mtemp1 = (pow(cos(jointAngle(1))*px + sin(jointAngle(1))*py - a(2), 2) + pow(pz - d(1), 2) - pow(a(3), 2) - pow(a(4), 2)) / (2 * a(3) * a(4));
     
-%     //    printf("\nMtemp1=%f\n",Mtemp1);
 
 	jointAngle(3) = -abs(acos(Mtemp1));
-% 	//    printf("\njointAngle[2]=%f\n",jointAngle[2]*180.0/M_PI);
+
 
 %     double tempm, tempn, tempTwo1;
 	tempm = px*cos(jointAngle(1)) + py*sin(jointAngle(1)) - a(2);
@@ -409,6 +591,21 @@ function jointAngle = InverseKinematics(position)
 end
 
 function PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VMAX,SampleTime) %默认初始末点速度为0，加速度为0;
+%-180,180 角度体系
+    flagNeedXG = 0;
+    if theta0*thetaf<0
+        if theta0>0
+            if theta0-thetaf>180
+                thetaf = 180+180+thetaf;
+                flagNeedXG = 1;
+            end
+        else
+            if thetaf-theta0>180
+                theta0 = 180+180+theta0;
+                flagNeedXG = 1;
+            end
+        end
+    end
     PointsSequence = [];
     k = 0.1; %k=ta/tb,取值范围为[0,0.5]
     if theta0 == thetaf
@@ -530,6 +727,13 @@ function PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VM
             if t>=tf-ta && t<=tf
                 PointsSequence(2,i) = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/3 - amax*(2*tb - tf)*(tb - k*tb) + amax*(tb - k*tb)*(tb - 2*k*tb) - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) + (amax*(t^3 - 3*t^2*tf + 3*t*tf^2 - tf^3))/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
                 continue;
+            end
+        end
+    end
+    if flagNeedXG==1
+        for i =1:size(PointsSequence,2)
+            if PointsSequence(2,i)>180
+                PointsSequence(2,i) = -180 + (PointsSequence(2,i)-180);
             end
         end
     end

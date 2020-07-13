@@ -40,9 +40,16 @@ A4=[cos(k4) -sin(k4) 0 a3;sin(k4)*cos(m3) cos(k4)*cos(m3) -sin(m3) -sin(m3)*d4;s
 R43 = A4(1:3,1:3);
 P43 = A4(1:3,4);
 A5=[1 0 0 tool;0 1 0 0;0 0 1 0;0 0 0 1];
-T1=A1*A2*A3*A4
-T2=A2*A3*A4
-T3=A3*A4
+T40 = simplify(A1*A2*A3*A4)
+T50 = simplify(A1*A2*A3*A4*A5)
+T50(1:3,4)-T40(1:3,4) %这个向量的值就是铲斗刚体的方向向量 使得z等于0即可使铲斗始终平行于地面
+T40(1,4)
+T40(2,4)
+T40(3,4)
+T40(4,4)
+% T1=A1*A2*A3*A4
+% T2=A2*A3*A4
+% T3=A3*A4
 
 InvA1=[cos(k1) sin(k1) 0 0;-sin(k1) cos(k1) 0 0;0 0 1 -d1;0 0 0 1];
 R01 = InvA1(1:3,1:3);
@@ -66,6 +73,27 @@ v33 = R23*(v22 + cross(Omiga22,P32))
 Omiga44 = R34*Omiga33 + [0;0;d_k4]
 v44 = R34*(v33 + cross(Omiga33,P43))
 R40 = R10*R21*R32*R43
+R41 = R21*R32*R43
+R41simp = simplify(R41)
+R40simp = simplify(R40)
+R40simp11 = R40simp(1,1)
+R40simp12 = R40simp(1,2)
+R40simp13 = R40simp(1,3)
+R40simp21 = R40simp(2,1)
+R40simp22 = R40simp(2,2)
+R40simp23 = R40simp(2,3)
+R40simp31 = R40simp(3,1)
+R40simp32 = R40simp(3,2)
+R40simp33 = R40simp(3,3)
+
+v21 = R21*v22
+omaga21 = R21*Omiga22
+v41 = R41*v44
+v411simpNotconj = (137*d_k1)/10 - (2109*d_k2*sin(k2 + k3))/10 - (2109*d_k3*sin(k2 + k3))/10 - 460*d_k2*sin(k2);
+
+
+
+
 v40 = R40*v44
 v401simpNotconj = (cos(k1 + k2 + k3 + k4)/2 + cos(k2 - k1 + k3 + k4)/2)*(460*d_k2*sin(k3 + k4) + (2109*d_k2*sin(k4))/10 + (2109*d_k3*sin(k4))/10 + (137*d_k1*cos(k2 + k3 + k4))/10) - (sin(k1 + k2 + k3 + k4)/2 + sin(k2 - k1 + k3 + k4)/2)*(460*d_k2*cos(k3 + k4) + (2109*d_k2*cos(k4))/10 + (2109*d_k3*cos(k4))/10 - (137*d_k1*sin(k2 + k3 + k4))/10) - (d_k1*sin(k1)*(2109*cos(k2 + k3) + 4600*cos(k2) + 120))/10
 v402simpNotconj = (cos(k1 + k2 + k3 + k4)/2 - cos(k2 - k1 + k3 + k4)/2)*(460*d_k2*cos(k3 + k4) + (2109*d_k2*cos(k4))/10 + (2109*d_k3*cos(k4))/10 - (137*d_k1*sin(k2 + k3 + k4))/10) + (sin(k1 + k2 + k3 + k4)/2 - sin(k2 - k1 + k3 + k4)/2)*(460*d_k2*sin(k3 + k4) + (2109*d_k2*sin(k4))/10 + (2109*d_k3*sin(k4))/10 + (137*d_k1*cos(k2 + k3 + k4))/10) + (d_k1*cos(k1)*(2109*cos(k2 + k3) + 4600*cos(k2) + 120))/10
@@ -83,6 +111,8 @@ Jacobo = [Jacobo;[((cos(k1)*(2109*cos(k2 + k3) + 4600*cos(k2) + 120))/10 - (137*
 hebin2 = collect(v403simpNotconj,[d_k1,d_k2,d_k3]);
 Jacobo = [Jacobo;[(- (5115723036350277*cos(k2 + k3))/396140812571321687967719751680 - (8926439437538653*cos(k2))/316912650057057350374175801344 - 3725818200016133/5070602400912917605986812821504) ((2109*cos(k2 + k3))/10 + 460*cos(k2)) ((2109*cos(k2 + k3))/10)]];
 InvJacobo = inv(Jacobo);
+InvJacobo = simplify(InvJacobo);
+InvJacobo(2,1)
 DetJacobo = simplify(det(Jacobo));
 
 Jacobo
