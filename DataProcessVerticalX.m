@@ -310,6 +310,142 @@ plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
 
 %%
 %functions
+function PointsSequence = LinearDigPlanning(StartPoint,EndPoint,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)
+%20200715 这个函数需要修改 分段规划，用GetCurrentvtheta3函数时，需要保证初速度不为0
+    PointsSequence = [];
+    tinterval = 0.01; %匀速运动时间是0.01秒
+    tcurrent = 0;
+    CurrentPoint = StartPoint;
+    fuhao = 1;
+    num = 0;
+    
+    
+    while norm(CurrentPoint-EndPoint)>0.001
+        jointAngle = InverseKinematicsPos2Angle(CurrentPoint);
+        theta1 = jointAngle(1);
+        theta2 = jointAngle(2);
+        theta3 = jointAngle(3);
+        
+        num = num+1;
+        PointsSequence(1,num) = tcurrent;
+        PointsSequence(2,num) = theta1;
+        PointsSequence(3,num) = theta2;
+        PointsSequence(4,num) = theta3;
+        
+        [Vtheta2,Vtheta3] = LinearDiggingGetRange(Vmaxtheta2,Vmaxtheta3,theta2,theta3);
+
+        theta1 = theta1*pi/180;
+        theta2 = theta2*pi/180;
+        theta3 = theta3*pi/180;
+        k1 = theta1; k2 = theta2; k3 = theta3;
+
+        d_k3 = fuhao * Vtheta3*pi/180;
+        d_k2 = fuhao * (-(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)));
+
+        Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
+        Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+        if dot(EndPoint-StartPoint,[Vx,Vy,0])<0
+            fuhao = -fuhao;
+            d_k3 = -d_k3;
+            d_k2 = -d_k2;
+            Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
+            Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+        end
+        CurrentPoint = CurrentPoint+tinterval*[Vx Vy 0];
+        
+        tcurrent = tcurrent + tinterval;
+    end
+end
+
+function vtheta3 = GetCurrentvtheta3(CurrentPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3)%输出满足加速度限制的当前时刻和下一时刻的速度值
+    amaxtheta2 = amaxtheta2*pi/180;
+    amaxtheta3 = amaxtheta3*pi/180;
+    fuhao = 1;
+    lastd_k2 = vtheta2Last*pi/180;
+    lastd_k3 = vtheta3Last*pi/180;
+    flagonce = 0;
+    xishu = 0.1; %每次迭代的缩放系数
+    
+    jointAngle = InverseKinematicsPos2Angle(CurrentPoint);
+    theta1 = jointAngle(1);
+    theta2 = jointAngle(2);
+    theta3 = jointAngle(3);
+    [Vtheta2range,Vtheta3range] = LinearDiggingGetRange(Vmaxtheta2,Vmaxtheta3,theta2,theta3);
+    theta1 = theta1*pi/180;
+    theta2 = theta2*pi/180;
+    theta3 = theta3*pi/180;
+    k1 = theta1; k2 = theta2; k3 = theta3;
+    
+    while 1
+        if flagonce == 0
+            if vtheta3Last<0
+                vtheta3 = -Vtheta3range; %先设置为允许的最大值
+            else
+                vtheta3 = Vtheta3range;
+            end
+            flagonce = 1;
+        else
+            if abs(vtheta3)<abs(vtheta3Last)
+                vtheta3tmp = abs(vtheta3) + xishu*(abs(vtheta3Last)-abs(vtheta3));
+            else
+                vtheta3tmp = abs(vtheta3) - xishu*(abs(vtheta3)-abs(vtheta3Last));
+            end
+            if vtheta3<0
+               vtheta3 = -vtheta3tmp;
+            else
+               vtheta3 = vtheta3tmp;
+            end
+        end
+
+        d_k3 = fuhao * vtheta3 * pi/180;
+        d_k2 = fuhao * (-(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)));
+
+        Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
+        Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+        if dot(EndPoint-CurrentPoint,[Vx,Vy,0])<0
+            fuhao = -fuhao;
+            d_k3 = -d_k3;
+            d_k2 = -d_k2;
+            Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
+            Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+            if dot(EndPoint-CurrentPoint,[Vx,Vy,0])<0
+                error('');
+            end
+        end
+%         CurrentPoint = CurrentPoint+tinterval*[Vx Vy 0];
+        a_k2 = abs((d_k2-lastd_k2)/tinterval);
+        a_k3 = abs((d_k3-lastd_k3)/tinterval);
+        if a_k2<=amaxtheta2 && a_k3<=amaxtheta3
+            break;
+        end
+    end
+end
+
+function [Vtheta2,Vtheta3] = LinearDiggingGetRange(Vmaxtheta2,Vmaxtheta3,theta2,theta3)% 输出每个theta2 theta3对应的满足角速度约束的角速度的绝对值的最大值 只有这样的角速度才能满足轨迹是直线，且直线平行于地面
+ %要保证输入Vmax是正值
+    Vmaxtheta2 = Vmaxtheta2*pi/180;
+    Vmaxtheta3 = Vmaxtheta3*pi/180;
+    theta2 = theta2*pi/180;
+    theta3 = theta3*pi/180;
+    
+    d_k3 = Vmaxtheta3;
+    k2 = theta2;
+    k3 = theta3;
+    Vtheta2tmp = -(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)); %这是通过求雅可比矩阵得到的对应关系
+    d_k2 = Vmaxtheta2;
+    Vtheta3tmp = -((2109*cos(k2 + k3) + 4600*cos(k2))/(2109*cos(k2 + k3)))*d_k2;
+    if abs(Vtheta2tmp)<=Vmaxtheta2
+        Vtheta2 = abs(Vtheta2tmp);
+        Vtheta3 = Vmaxtheta3;
+    else
+        if abs(Vtheta3tmp)<= Vmaxtheta3
+            Vtheta3 = abs(Vtheta3tmp);
+            Vtheta2 = Vmaxtheta2;
+        end
+    end   
+    Vtheta2 = Vtheta2*180/pi;
+    Vtheta3 = Vtheta3*180/pi;
+end
 
 function Combination = CombineAngleSequences(PointsAngleSequence) %把每个独立的角度序列组合在一起 必须保证待组合的序列长度相同且时间跨度相同
     Combination = PointsAngleSequence{1}(1,:);

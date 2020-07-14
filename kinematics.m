@@ -65,6 +65,7 @@ InvA3*InvA2*InvA1
 
 syms d_k1 d_k2 d_k3 d_k4
 Omiga11 = [0;0;d_k1]
+% Omiga11 = [0;0;0] %假设不转 转时用上边一行
 v11 = [0;0;0]
 Omiga22 = R12*Omiga11 + [0;0;d_k2]
 v22 = R12*(v11 + cross(Omiga11,P21))
@@ -89,12 +90,31 @@ R40simp33 = R40simp(3,3)
 v21 = R21*v22
 omaga21 = R21*Omiga22
 v41 = R41*v44
-v411simpNotconj = (137*d_k1)/10 - (2109*d_k2*sin(k2 + k3))/10 - (2109*d_k3*sin(k2 + k3))/10 - 460*d_k2*sin(k2);
-
-
-
-
 v40 = R40*v44
+v40 = simplify(v40)
+% v401simpNotconj = 230*d_k2*sin(k1 - k2) - (2109*d_k3*sin(k2 - k1 + k3))/20 - 230*d_k2*sin(k1 + k2) - (2109*d_k2*sin(k2 - k1 + k3))/20 - (7420384073534669*d_k2*sin(k1 + k2 + k3))/70368744177664 - (7420384073534669*d_k3*sin(k1 + k2 + k3))/70368744177664;
+% v401simpNotconj = collect(v401simpNotconj,[d_k2,d_k3])
+% v402simpNotconj = 230*d_k2*cos(k1 + k2) - (2109*d_k3*cos(k2 - k1 + k3))/20 - (2109*d_k2*cos(k2 - k1 + k3))/20 - 230*d_k2*cos(k1 - k2) + (7420384073534669*d_k2*cos(k1 + k2 + k3))/70368744177664 + (7420384073534669*d_k3*cos(k1 + k2 + k3))/70368744177664;
+% v402simpNotconj = collect(v402simpNotconj,[d_k2,d_k3])
+% v403simpNotconj = (2109*d_k2*cos(k2 + k3))/10 + (2109*d_k3*cos(k2 + k3))/10 + 460*d_k2*cos(k2);
+% v403simpNotconj = collect(v403simpNotconj,[d_k2,d_k3])
+% v40 = [v401simpNotconj;v402simpNotconj;v403simpNotconj]
+
+% v401 = (230*sin(k1 - k2) - (7420384073534669*sin(k1 + k2 + k3))/70368744177664 - (2109*sin(k2 - k1 + k3))/20 - 230*sin(k1 + k2))*d_k2 + (- (7420384073534669*sin(k1 + k2 + k3))/70368744177664 - (2109*sin(k2 - k1 + k3))/20)*d_k3;
+% v402 = ((7420384073534669*cos(k1 + k2 + k3))/70368744177664 - (2109*cos(k2 - k1 + k3))/20 + 230*cos(k1 + k2) - 230*cos(k1 - k2))*d_k2 + ((7420384073534669*cos(k1 + k2 + k3))/70368744177664 - (2109*cos(k2 - k1 + k3))/20)*d_k3;
+% v403 = ((2109*cos(k2 + k3))/10 + 460*cos(k2))*d_k2 + ((2109*cos(k2 + k3))/10)*d_k3;
+% Jacobothis(1,:) = [0 (230*sin(k1 - k2) - (7420384073534669*sin(k1 + k2 + k3))/70368744177664 - (2109*sin(k2 - k1 + k3))/20 - 230*sin(k1 + k2)) (- (7420384073534669*sin(k1 + k2 + k3))/70368744177664 - (2109*sin(k2 - k1 + k3))/20)];
+% Jacobothis(2,:) = [0 ((7420384073534669*cos(k1 + k2 + k3))/70368744177664 - (2109*cos(k2 - k1 + k3))/20 + 230*cos(k1 + k2) - 230*cos(k1 - k2)) ((7420384073534669*cos(k1 + k2 + k3))/70368744177664 - (2109*cos(k2 - k1 + k3))/20)];
+% Jacobothis(3,:) = [0 ((2109*cos(k2 + k3))/10 + 460*cos(k2)) ((2109*cos(k2 + k3))/10)];
+% InvJacobothis = inv(Jacobothis)
+
+% v411simpNotconj = (137*d_k1)/10 - (2109*d_k2*sin(k2 + k3))/10 - (2109*d_k3*sin(k2 + k3))/10 - 460*d_k2*sin(k2);
+v411simpNotconj = - (2109*d_k2*sin(k2 + k3))/10 - (2109*d_k3*sin(k2 + k3))/10 - 460*d_k2*sin(k2);
+v412simpNotconj = 0;
+
+
+
+
 v401simpNotconj = (cos(k1 + k2 + k3 + k4)/2 + cos(k2 - k1 + k3 + k4)/2)*(460*d_k2*sin(k3 + k4) + (2109*d_k2*sin(k4))/10 + (2109*d_k3*sin(k4))/10 + (137*d_k1*cos(k2 + k3 + k4))/10) - (sin(k1 + k2 + k3 + k4)/2 + sin(k2 - k1 + k3 + k4)/2)*(460*d_k2*cos(k3 + k4) + (2109*d_k2*cos(k4))/10 + (2109*d_k3*cos(k4))/10 - (137*d_k1*sin(k2 + k3 + k4))/10) - (d_k1*sin(k1)*(2109*cos(k2 + k3) + 4600*cos(k2) + 120))/10
 v402simpNotconj = (cos(k1 + k2 + k3 + k4)/2 - cos(k2 - k1 + k3 + k4)/2)*(460*d_k2*cos(k3 + k4) + (2109*d_k2*cos(k4))/10 + (2109*d_k3*cos(k4))/10 - (137*d_k1*sin(k2 + k3 + k4))/10) + (sin(k1 + k2 + k3 + k4)/2 - sin(k2 - k1 + k3 + k4)/2)*(460*d_k2*sin(k3 + k4) + (2109*d_k2*sin(k4))/10 + (2109*d_k3*sin(k4))/10 + (137*d_k1*cos(k2 + k3 + k4))/10) + (d_k1*cos(k1)*(2109*cos(k2 + k3) + 4600*cos(k2) + 120))/10
 v403simpNotconj = (2109*d_k2*cos(k2 + k3))/10 - (5115723036350277*d_k1*cos(k2 + k3))/396140812571321687967719751680 - (3725818200016133*d_k1)/5070602400912917605986812821504 + (2109*d_k3*cos(k2 + k3))/10 - (8926439437538653*d_k1*cos(k2))/316912650057057350374175801344 + 460*d_k2*cos(k2)
@@ -112,12 +132,56 @@ hebin2 = collect(v403simpNotconj,[d_k1,d_k2,d_k3]);
 Jacobo = [Jacobo;[(- (5115723036350277*cos(k2 + k3))/396140812571321687967719751680 - (8926439437538653*cos(k2))/316912650057057350374175801344 - 3725818200016133/5070602400912917605986812821504) ((2109*cos(k2 + k3))/10 + 460*cos(k2)) ((2109*cos(k2 + k3))/10)]];
 InvJacobo = inv(Jacobo);
 InvJacobo = simplify(InvJacobo);
+Jacobo = simplify(Jacobo);
 InvJacobo(2,1)
 DetJacobo = simplify(det(Jacobo));
 
 Jacobo
 InvJacobo
 DetJacobo
+InvJacobo11 = InvJacobo(1,1)
+InvJacobo12 = InvJacobo(1,2)
+InvJacobo13 = InvJacobo(1,3)
+InvJacobo21 = InvJacobo(2,1)
+InvJacobo22 = InvJacobo(2,2)
+InvJacobo23 = InvJacobo(2,3)
+InvJacobo31 = InvJacobo(3,1)
+InvJacobo32 = InvJacobo(3,2)
+InvJacobo33 = InvJacobo(3,3)
+
+Jacobo11 = Jacobo(1,1)
+Jacobo12 = Jacobo(1,2)
+Jacobo13 = Jacobo(1,3)
+Jacobo21 = Jacobo(2,1)
+Jacobo22 = Jacobo(2,2)
+Jacobo23 = Jacobo(2,3)
+Jacobo31 = Jacobo(3,1)
+Jacobo32 = Jacobo(3,2)
+Jacobo33 = Jacobo(3,3)
+
+d_k2 = -(Jacobo33/Jacobo32)*d_k3;
+Vx = Jacobo12*d_k2 + Jacobo13*d_k3
+Vy = Jacobo22*d_k2 + Jacobo23*d_k3
+
+
+k1 = 73*pi/180;
+for k2=-40*pi/180:0.1:44*pi/180
+    for k3=-130*pi/180:0.2:-20*pi/180
+        i=0;
+        for d_k3=-50*360*pi/180:1:50*360*pi/180
+            i=i+1;
+            %Vx
+%             plot(i,(2109*d_k3*cos(k2 + k3)*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/(100*((2109*cos(k2 + k3))/10 + 460*cos(k2))) - (2109*d_k3*sin(k2 + k3)*cos(k1))/10,'r.');
+            %Vy
+%             plot(i,(2109*d_k3*cos(k2 + k3)*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/(100*((2109*cos(k2 + k3))/10 + 460*cos(k2))) - (2109*d_k3*sin(k2 + k3)*sin(k1))/10,'b.');  
+            %d_k2
+            plot(i,-(2109*d_k3*cos(k2 + k3))/(10*((2109*cos(k2 + k3))/10 + 460*cos(k2))),'y.');
+            hold on 
+            
+        end
+        pause(0.1)
+    end
+end
 
 pretty(DetJacobo)
 
