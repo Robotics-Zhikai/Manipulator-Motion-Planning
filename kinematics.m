@@ -159,9 +159,15 @@ Jacobo31 = Jacobo(3,1)
 Jacobo32 = Jacobo(3,2)
 Jacobo33 = Jacobo(3,3)
 
-d_k2 = -(Jacobo33/Jacobo32)*d_k3;
+syms z1 z0 x1 x0 y1 y0
 Vx = Jacobo12*d_k2 + Jacobo13*d_k3
 Vy = Jacobo22*d_k2 + Jacobo23*d_k3
+% Vz = Jacobo32*d_k2 + Jacobo33*d_k3
+% Vz = (z1-z0)/(x1-x0)*Vx
+Vz = (z1-z0)/(y1-y0)*Vy
+d_k2 = Vz/Jacobo32-(Jacobo33/Jacobo32)*d_k3;
+d_k2 = simplify(d_k2)
+
 
 
 k1 = 73*pi/180;

@@ -165,6 +165,7 @@ end
   
 figure
 PointsSet = GenratePointInner(2500);
+% PointsSet = GenratePointOuter(2500);
 plot3(PointsSet(:,1),PointsSet(:,2),PointsSet(:,3),'.');
 % pause(0.1);
 % hold on
@@ -178,6 +179,67 @@ zlabel('z');
 %%
 %Planning
 %joint space
+% PointA = [297.1008   40.1643 -433.8036];
+% PointB = [  424.5138   63.3608 -433.8036];
+% PointA = [463.7004  241.4290  232.3442];
+% PointB = [559.8579  294.7425  232.3442];
+
+% PointA = [-369.7680  429.8885  237.5011]; %这组数据没解决
+% PointB = [-198.6941  240.4567 -424.4452];
+
+% PointA = [ -391.7412   65.5419   71.7357];
+% PointB = [ -633.5337   97.4666   71.7357];
+
+% PointA = [485.3701  -70.5901  -79.9666];
+% PointB = [644.7731  -89.2429   61.6302];
+% [PointA,PointB] = RandGenratePointLineParallelground();
+PointA = [246.1835  433.8464 -198.6287];
+PointB = [270.0888  478.8083  189.0505];
+% [PointA,PointB] = RandGenratePointDirectLine();
+hold on
+plot3([PointA(1) PointB(1)],[PointA(2) PointB(2)],[PointA(3) PointB(3)],'o');
+% PointsSequence = LinearDigPlanningParallel2ground(PointA,PointB,-100,30,30,30,30,5,15,15);
+% PointsSequence = LinearDigPlanningRandomLine(PointA,PointB,-100,30,50,50,50,25,25,25);
+PointsSequence = LinearDigPlanningRandomLine(PointA,PointB,-100,30,150,150,150,15,25,25);
+% LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)
+figure
+plot(PointsSequence(1,:),PointsSequence(2,:),'r-');
+hold on 
+plot(PointsSequence(1,:),PointsSequence(3,:),'b-');
+hold on
+plot(PointsSequence(1,:),PointsSequence(4,:),'y-');
+
+cartesianSequence = [];
+for i=1:size(PointsSequence,2)
+    [position1,position2] = ForwardKinematics([PointsSequence(2:4,i);0]);
+    cartesianSequence = [cartesianSequence [PointsSequence(1,i);position1(1:3,4)]];
+end
+% figure
+% plot(cartesianSequence(1,:),cartesianSequence(2,:),'r-');
+% hold on
+% plot(cartesianSequence(1,:),cartesianSequence(3,:),'b-');
+% hold on
+% plot(cartesianSequence(1,:),cartesianSequence(4,:),'y-');
+% hold on
+% 
+% figure
+for i=1:10:size(cartesianSequence,2)
+    plot3(cartesianSequence(2,i),cartesianSequence(3,i),cartesianSequence(4,i),'.');
+    hold on
+    pause(0.1);
+end
+% plot3(PlotSequence(1,:),PlotSequence(2,:),PlotSequence(3,:),'.');
+
+
+
+
+
+
+
+
+
+
+
 % BeginPoint=[-85.1083  305.1562 -234.3325];
 % EndPoint = [-505.7061  -19.8488  209.6305];
 BeginPoint = RandGenratePointInWorkSpace(1);
@@ -310,83 +372,646 @@ plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
 
 %%
 %functions
-function PointsSequence = LinearDigPlanning(StartPoint,EndPoint,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)
-%20200715 这个函数需要修改 分段规划，用GetCurrentvtheta3函数时，需要保证初速度不为0
+function [PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)%解决任意可直达直线挖掘
+  %PointsSequence 存储theta1 theta2 theta3 随时间变化的序列
+    if IsDirectReachable(StartPoint,EndPoint) == 0
+        PointsSequence = [];
+        theta4sequence = [];
+        error('输入的两点不是直接的直线可达！');
+        return;
+    end
+    begindistance = norm(StartPoint-EndPoint)
     PointsSequence = [];
     tinterval = 0.01; %匀速运动时间是0.01秒
+    angleinterval = 1; %每次关节运动1度
     tcurrent = 0;
-    CurrentPoint = StartPoint;
+    
+    x0 = StartPoint(1);
+    y0 = StartPoint(2);
+    z0 = StartPoint(3);
+    x1 = EndPoint(1);
+    y1 = EndPoint(2);
+    z1 = EndPoint(3);
+
     fuhao = 1;
     num = 0;
     
+    vtheta2Last = 0;
+    vtheta3Last = 0; 
     
-    while norm(CurrentPoint-EndPoint)>0.001
-        jointAngle = InverseKinematicsPos2Angle(CurrentPoint);
-        theta1 = jointAngle(1);
-        theta2 = jointAngle(2);
-        theta3 = jointAngle(3);
-        
+    jointAngleEnd = InverseKinematicsPos2Angle(EndPoint);
+    CurrentPoint = StartPoint;
+    jointAngle = InverseKinematicsPos2Angle(StartPoint);
+    theta1 = jointAngle(1);
+    theta2 = jointAngle(2);
+    theta3 = jointAngle(3);
+%     Chazhi = [];
+%     X3 = [];
+%     X2 = [];
+    flagSlowDown = 0;
+figure
+    while norm(CurrentPoint-EndPoint)>1
         num = num+1;
         PointsSequence(1,num) = tcurrent;
         PointsSequence(2,num) = theta1;
         PointsSequence(3,num) = theta2;
         PointsSequence(4,num) = theta3;
         
-        [Vtheta2,Vtheta3] = LinearDiggingGetRange(Vmaxtheta2,Vmaxtheta3,theta2,theta3);
+        [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(jointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3);
+        x3 = vtheta3^2/(2*amaxtheta3)+vtheta3*tinterval/2;
+%         x2 = vtheta2^2/(2*amaxtheta2)+vtheta2*tinterval/2;
+%          Chazhi =  jointAngleEnd(3)-jointAngle(3);
+      
+        subplot(131)
+        plot(num,vtheta2,'.');
+        hold on 
+        subplot(133)
+        plot(num,norm(CurrentPoint-EndPoint),'.');
+        hold on 
+        subplot(132)
+        plot(num,vtheta3,'.');
+        hold on
+        pause(0.1);
 
-        theta1 = theta1*pi/180;
-        theta2 = theta2*pi/180;
-        theta3 = theta3*pi/180;
-        k1 = theta1; k2 = theta2; k3 = theta3;
-
-        d_k3 = fuhao * Vtheta3*pi/180;
-        d_k2 = fuhao * (-(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)));
-
-        Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
-        Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
-        if dot(EndPoint-StartPoint,[Vx,Vy,0])<0
-            fuhao = -fuhao;
-            d_k3 = -d_k3;
-            d_k2 = -d_k2;
-            Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
-            Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+        if abs(x3-(jointAngleEnd(3)-jointAngle(3)))<2 %&& norm(CurrentPoint-EndPoint)<10
+            if norm(CurrentPoint-EndPoint)<100
+                flagSlowDown = 1;
+            end
         end
-        CurrentPoint = CurrentPoint+tinterval*[Vx Vy 0];
+%         Chazhi = [Chazhi jointAngleEnd(3)-jointAngle(3)];
+%         X3 = [X3;x3];
+%         X2 = [X2;x2];
         
+        vtheta2Last = vtheta2;
+        vtheta3Last = vtheta3;
+        theta2 = theta2 + vtheta2*tinterval;
+        theta3 = theta3 + vtheta3*tinterval;
+        theta2 = legalizAnger(theta2);
+        theta3 = legalizAnger(theta3);
+        jointAngle = [theta1 theta2 theta3];
         tcurrent = tcurrent + tinterval;
+        [pos1,pos2] = ForwardKinematics([theta1 theta2 theta3 0]);
+        CurrentPoint = pos1(1:3,4);
+        CurrentPoint = CurrentPoint';
+        norm(CurrentPoint-EndPoint)
+        if flagSlowDown == 1
+            break; %之后就开始减速 以两个关节都能承受的加速度进行减速，只不过最后可能会超出末位置 如果是以最大值进行减速，则正好到目标点，否则会超过目标点。要尽可能使加速度达到最大！
+        end
     end
+    
+%     plot(Chazhi)
+%     plot(X3)
+%     hold on 
+%     plot(X2)
+
+    if flagSlowDown == 1
+        while abs(vtheta3)>0.1
+            k1 = theta1*pi/180;
+            k2 = theta2*pi/180;
+            k3 = theta3*pi/180;
+            acurrenttheta2 = amaxtheta2;
+            acurrenttheta3 = amaxtheta3;
+            if x0 ~= x1
+                if amaxtheta2 < abs(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))/((- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1)))*amaxtheta3
+    
+                    %说明amaxtheta2 带不动amaxtheta3
+                    acurrenttheta3 = acurrenttheta2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))/((- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1)));
+                    acurrenttheta3 = abs(acurrenttheta3);
+                    disp('要注意铲斗不是精确到目标位置!要想精确，首先提高加速度约束的大小');
+                end
+            else
+                if y0~=y1
+                    if amaxtheta2 <abs(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))/((- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1)))
+                        acurrenttheta3 = acurrenttheta2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))/((- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1)));
+                        acurrenttheta3 = abs(acurrenttheta3);
+                        disp('要注意铲斗不是精确到目标位置!要想精确，首先提高加速度约束的大小');
+                    end
+                else
+                    disp('要完成的直线是垂直于地面的')
+                end
+            end
+            if vtheta3 < 0
+                vtheta3 = vtheta3 + acurrenttheta3*tinterval;
+            else
+                vtheta3 = vtheta3 - acurrenttheta3*tinterval;
+            end
+            d_k3 = vtheta3*pi/180;
+            if x0~=x1
+                d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))*d_k3/(- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1);
+
+            else
+                if y0~=y1
+                    d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))*d_k3/(- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1);
+                else
+                    disp('要完成的直线是垂直于地面的')
+                end
+            end
+%             d_k2 = -(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)); %这是通过求雅可比矩阵得到的对应关系
+            vtheta2 = d_k2*180/pi;
+            theta2 = theta2 + vtheta2*tinterval;
+            theta3 = theta3 + vtheta3*tinterval;
+            theta2 = legalizAnger(theta2);
+            theta3 = legalizAnger(theta3);
+            
+            num = num+1;
+            PointsSequence(1,num) = tcurrent;
+            PointsSequence(2,num) = theta1;
+            PointsSequence(3,num) = theta2;
+            PointsSequence(4,num) = theta3;
+            tcurrent = tcurrent + tinterval;
+        end
+    end
+    [pos1,pos2] = ForwardKinematics([PointsSequence(2,end) PointsSequence(3,end) PointsSequence(4,end) 0]);
+    CurrentPoint = pos1(1:3,4);
+    CurrentPoint = CurrentPoint';
+    
+    %接下来只要在上述规划时间内把铲斗摆动到预期位置即可
+    
+    success = 0;
+    k_tf = 1.1;
+    tf = PointsSequence(1,end)/k_tf;
+    while success == 0
+        tf = k_tf*tf;
+        [theta4sequence,success] = ManipulatorPlanningJointSpace(theta4begin,theta4end,tf,amaxtheta4,Vmaxtheta4,tinterval);
+    end
+    enddistance = norm(CurrentPoint-EndPoint) %这是误差，经过少量测试，误差不会超过2cm
 end
 
-function vtheta3 = GetCurrentvtheta3(CurrentPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3)%输出满足加速度限制的当前时刻和下一时刻的速度值
+function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(CurrentJointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3)%输出满足加速度限制的当前时刻速度值
     amaxtheta2 = amaxtheta2*pi/180;
     amaxtheta3 = amaxtheta3*pi/180;
     fuhao = 1;
     lastd_k2 = vtheta2Last*pi/180;
     lastd_k3 = vtheta3Last*pi/180;
     flagonce = 0;
-    xishu = 0.1; %每次迭代的缩放系数
+    xishu = 0.3; %每次迭代的缩放系数
+    k_yuzhi = 0.9; %先设置为允许的留有一定裕度的最大值
     
-    jointAngle = InverseKinematicsPos2Angle(CurrentPoint);
-    theta1 = jointAngle(1);
-    theta2 = jointAngle(2);
-    theta3 = jointAngle(3);
-    [Vtheta2range,Vtheta3range] = LinearDiggingGetRange(Vmaxtheta2,Vmaxtheta3,theta2,theta3);
+    x0 = StartPoint(1);
+    y0 = StartPoint(2);
+    z0 = StartPoint(3);
+    x1 = EndPoint(1);
+    y1 = EndPoint(2);
+    z1 = EndPoint(3);
+   
+%      jointAngle = InverseKinematicsPos2Angle(CurrentPoint);
+    theta1 = CurrentJointAngle(1);
+    theta2 = CurrentJointAngle(2);
+    theta3 = CurrentJointAngle(3);
+    [pos1,pos2] = ForwardKinematics([theta1 theta2 theta3 0]);
+    CurrentPoint = pos1(1:3,4);
+    CurrentPoint = CurrentPoint';
+    
+    [Vtheta2range,Vtheta3range] = LinearDiggingGetRangeRandomLine(Vmaxtheta2,Vmaxtheta3,theta1,theta2,theta3,StartPoint,EndPoint);
+    
     theta1 = theta1*pi/180;
     theta2 = theta2*pi/180;
     theta3 = theta3*pi/180;
     k1 = theta1; k2 = theta2; k3 = theta3;
     
+    lasta_k2 = 0;
+    lasta_k3 = 0;
+    
+    absvtheta3Upper = abs(lastd_k3) + amaxtheta3*tinterval;
+    absvtheta3Lower = abs(lastd_k3) - amaxtheta3*tinterval;
+    absvtheta2Upper = abs(lastd_k2) + amaxtheta2*tinterval;
+    absvtheta2Lower = abs(lastd_k2) - amaxtheta2*tinterval;
+    huduVtheta2range = Vtheta2range*pi/180;
+    huduVtheta3range = Vtheta3range*pi/180;
+    if (huduVtheta2range<absvtheta2Lower) || (huduVtheta3range<absvtheta3Lower)
+        error('需要重新修改相关参数，这组参数无法满足加速度约束');
+        return;
+    end
+    
+    if huduVtheta3range>=absvtheta3Upper %求得满足加速度限制的Vtheta3的上下界
+        Fita_Vtheta3Upper = absvtheta3Upper;
+        Fita_Vtheta3Lower = absvtheta3Lower;
+    else
+        Fita_Vtheta3Upper = huduVtheta3range;
+        Fita_Vtheta3Lower = absvtheta3Lower;
+    end
+    if huduVtheta2range>=absvtheta2Upper %求得满足加速度限制的Vtheta3的上下界
+        Fita_Vtheta2Upper = absvtheta2Upper;
+        Fita_Vtheta2Lower = absvtheta2Lower;
+    else
+        Fita_Vtheta2Upper = huduVtheta2range;
+        Fita_Vtheta2Lower = absvtheta2Lower;
+    end
+    
+    
+    if vtheta3Last<0
+        Fita_Vtheta3Upper = -Fita_Vtheta3Upper;
+        Fita_Vtheta3Lower = -Fita_Vtheta3Lower;
+        exchangetmp = Fita_Vtheta3Upper;
+        Fita_Vtheta3Upper = Fita_Vtheta3Lower;
+        Fita_Vtheta3Lower = exchangetmp;
+    end
+    if vtheta2Last<0
+        Fita_Vtheta2Upper = -Fita_Vtheta2Upper;
+        Fita_Vtheta2Lower = -Fita_Vtheta2Lower;
+        exchangetmp = Fita_Vtheta2Upper;
+        Fita_Vtheta2Upper = Fita_Vtheta2Lower;
+        Fita_Vtheta2Lower = exchangetmp;
+    end
+    
+    Fita_Vtheta3 = [Fita_Vtheta3Lower Fita_Vtheta3Upper];%这是弧度
+    flagYESsolution = 0;
+    Vtheta2set = [];
+    Vtheta3set = [];
+    d_k2Storage = [];
+    for i=1:2
+        d_k3 = Fita_Vtheta3(i);
+%         d_k3 = fuhao * vtheta3 * pi/180;
+        if x0~=x1
+            d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))*d_k3/(- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1);
+        else
+            if y0~=y1
+                d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))*d_k3/(- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1);
+            end
+        end
+%         d_k2 = fuhao * (-(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)));
+
+        Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
+        Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+        Vz = d_k2*((2109*cos(k2 + k3))/10 + 460*cos(k2)) + (2109*d_k3*cos(k2 + k3))/10;
+        if dot(EndPoint-CurrentPoint,[Vx,Vy,Vz])<0
+            fuhao = -fuhao;
+            d_k3 = -d_k3;
+            d_k2 = -d_k2;
+            Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
+            Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+            Vz = d_k2*((2109*cos(k2 + k3))/10 + 460*cos(k2)) + (2109*d_k3*cos(k2 + k3))/10;
+            if dot(EndPoint-CurrentPoint,[Vx,Vy,Vz])<0
+                error('');
+            end
+        end
+        d_k2Storage = [d_k2Storage d_k2*180/pi];
+        if d_k2>=Fita_Vtheta2Lower-0.01 && d_k2<=Fita_Vtheta2Upper+0.01
+            vtheta3 = d_k3*180/pi;
+            vtheta2 = d_k2*180/pi;
+            Vtheta2set = [Vtheta2set vtheta2];
+            Vtheta3set = [Vtheta3set vtheta3];
+            flagYESsolution = flagYESsolution+1;
+%             break;
+        end
+%         CurrentPoint = CurrentPoint+tinterval*[Vx Vy 0];
+        a_k2 = abs((d_k2-lastd_k2)/tinterval);
+        a_k3 = abs((d_k3-lastd_k3)/tinterval);
+    end
+%     if flagYESsolution == 2
+%         Vtheta2set
+%         Vtheta3set
+%     end
+    if flagYESsolution == 0
+        error('需要重新修改相关参数，这组参数无法满足加速度约束');
+    else
+        if flagYESsolution == 1
+            %20200716 这个必须得考虑一个区间
+            vtheta2 = Vtheta2set(1);
+            vtheta3 = Vtheta3set(1);
+        else
+            kthis = 0.9;
+            vtheta2 = GetVelocityInRange(Vtheta2set(1),Vtheta2set(2),kthis);
+            vtheta3 = GetVelocityInRange(Vtheta3set(1),Vtheta3set(2),kthis);
+            %20200716 这里有bug 对应关系
+        end
+    end
+    
+%     while 1
+%         if flagonce == 0
+%             if vtheta3Last<0
+%                 vtheta3 = -k_yuzhi*Vtheta3range; %先设置为允许的留有一定裕度的最大值
+%             else
+%                 vtheta3 = k_yuzhi*Vtheta3range;
+%             end
+%             flagonce = 1;
+%         else
+%             if abs(vtheta3)<abs(vtheta3Last) && abs(vtheta3Last)-abs(vtheta3Last)>0.001
+%                 if Vtheta3range>=abs(vtheta3Last)
+%                     upper = abs(vtheta3Last);
+%                 else
+%                     upper = Vtheta3range;
+%                 end
+%                 vtheta3tmp = abs(vtheta3) + xishu*(upper-abs(vtheta3));
+%             else
+%                 if abs(abs(vtheta3)-abs(vtheta3Last))<0.001
+%                     vtheta3tmp = abs(vtheta3) - xishu*(abs(vtheta3)-abs( 0.5*vtheta3Last));
+%                 else
+%                     vtheta3tmp = abs(vtheta3) - xishu*(abs(vtheta3)-abs( vtheta3Last));
+%                 end
+%             end
+%             if vtheta3<0
+%                vtheta3 = -vtheta3tmp;
+%             else
+%                vtheta3 = vtheta3tmp;
+%             end
+%         end
+% 
+%         d_k3 = fuhao * vtheta3 * pi/180;
+%         if x0~=x1
+%             d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))*d_k3/(- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1);
+%         else
+%             if y0~=y1
+%                 d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))*d_k3/(- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1);
+%             end
+%         end
+% %         d_k2 = fuhao * (-(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)));
+% 
+%         Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
+%         Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+%         Vz = d_k2*((2109*cos(k2 + k3))/10 + 460*cos(k2)) + (2109*d_k3*cos(k2 + k3))/10;
+%         if dot(EndPoint-CurrentPoint,[Vx,Vy,Vz])<0
+%             fuhao = -fuhao;
+%             d_k3 = -d_k3;
+%             d_k2 = -d_k2;
+%             Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
+%             Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
+%             Vz = d_k2*((2109*cos(k2 + k3))/10 + 460*cos(k2)) + (2109*d_k3*cos(k2 + k3))/10;
+%             if dot(EndPoint-CurrentPoint,[Vx,Vy,Vz])<0
+%                 error('');
+%             end
+%         end
+% %         CurrentPoint = CurrentPoint+tinterval*[Vx Vy 0];
+%         a_k2 = abs((d_k2-lastd_k2)/tinterval);
+%         a_k3 = abs((d_k3-lastd_k3)/tinterval);
+%         if abs(a_k2-lasta_k2)<0.001 && abs(a_k3-lasta_k3)<0.000001
+%             error('需要重新修改相关参数，这组参数无法满足加速度约束');
+%             break;
+%         end
+%         lasta_k2 = a_k2;
+%         lasta_k3 = a_k3;
+%         if a_k2<=amaxtheta2 && a_k3<=amaxtheta3
+%             vtheta3 = d_k3*180/pi;
+%             vtheta2 = d_k2*180/pi;
+%             break;
+%         end
+%     end
+end
+
+function out = GetIntersection(qujianA,qujianB)
+%20200717 写这个交集函数
+    if qujianA(1)>qujianA(2)
+        tmp = qujianA(1);
+        qujianA(1) = qujianA(2);
+        qujianA(2) = tmp;
+    end
+    if qujianB(1)>qujianB(2)
+        tmp = qujianB(1);
+        qujianB(1) = qujianB(2);
+        qujianB(2) = tmp;
+    end
+    if qujianA(2)<qujianB(1)
+        out = [];
+    else
+        if qujianA(2)==qujianB(1)
+            out = qujian(1);
+        else
+            if qujianA(1)<=qujianB(1)
+                out = [qujianB(1),qujianA(2)];
+            end
+        end
+    end
+end
+
+function v = GetVelocityInRange(Lower,Upper,k) %k=1时，走满足范围的最大的绝对值速度 k=0时，走0
+    if Lower>Upper
+        tmp =Upper;
+        Upper = Lower;
+        Lower = tmp;
+    end
+    absLower = abs(Lower);
+    absUpper = abs(Upper);
+    if absUpper>=absLower
+        v_value = k*absUpper;
+        if Upper<0
+            v = -v_value;
+        else
+            v = v_value;
+        end
+    else
+        v_value = k*absLower;
+        if Lower<0
+            v = -v_value;
+        else
+            v = v_value;
+        end
+    end
+end
+
+function [Vtheta2,Vtheta3] = LinearDiggingGetRangeRandomLine(Vmaxtheta2,Vmaxtheta3,theta1,theta2,theta3,StartPoint,EndPoint)
+     %要保证输入Vmax是正值
+    Vmaxtheta2 = Vmaxtheta2*pi/180;
+    Vmaxtheta3 = Vmaxtheta3*pi/180;
+    theta1 = theta1*pi/180;
+    theta2 = theta2*pi/180;
+    theta3 = theta3*pi/180;
+    x0 = StartPoint(1);
+    y0 = StartPoint(2);
+    z0 = StartPoint(3);
+    x1 = EndPoint(1);
+    y1 = EndPoint(2);
+    z1 = EndPoint(3);
+    
+    d_k3 = Vmaxtheta3;
+    k1 = theta1;
+    k2 = theta2;
+    k3 = theta3;
+    if x0~=x1
+        Vtheta2tmp = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))*d_k3/(- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1);
+        d_k2 = Vmaxtheta2;
+        Vtheta3tmp = (- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1)*d_k2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1))));
+    else
+        if y0~=y1
+            Vtheta2tmp = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))*d_k3/(- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1);
+            d_k2 = Vmaxtheta2;
+            Vtheta3tmp = (- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1)*d_k2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1))));
+        else
+            disp('说明只有z方向，此时只有一组vtheta2 vthata3的解')
+        end
+    end
+    %     Vtheta2tmp = -(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)); %这是通过求雅可比矩阵得到的对应关系
+%     d_k2 = Vmaxtheta2;
+%     Vtheta3tmp = -((2109*cos(k2 + k3) + 4600*cos(k2))/(2109*cos(k2 + k3)))*d_k2;
+    if abs(Vtheta2tmp)<=Vmaxtheta2
+        Vtheta2 = abs(Vtheta2tmp);
+        Vtheta3 = Vmaxtheta3;
+    else
+        if abs(Vtheta3tmp)<= Vmaxtheta3
+            Vtheta3 = abs(Vtheta3tmp);
+            Vtheta2 = Vmaxtheta2;
+        end
+    end   
+    Vtheta2 = Vtheta2*180/pi;
+    Vtheta3 = Vtheta3*180/pi;
+end
+
+function [PointsSequence,theta4sequence] = LinearDigPlanningParallel2ground(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)%只能解决平行于水平地面的直线挖掘
+  %PointsSequence 存储theta1 theta2 theta3 随时间变化的序列
+    begindistance = norm(StartPoint-EndPoint)
+    PointsSequence = [];
+    tinterval = 0.01; %匀速运动时间是0.01秒
+    angleinterval = 1; %每次关节运动1度
+    tcurrent = 0;
+
+    fuhao = 1;
+    num = 0;
+    
+    vtheta2Last = 0;
+    vtheta3Last = 0; 
+    
+    jointAngleEnd = InverseKinematicsPos2Angle(EndPoint);
+    CurrentPoint = StartPoint;
+    jointAngle = InverseKinematicsPos2Angle(StartPoint);
+    theta1 = jointAngle(1);
+    theta2 = jointAngle(2);
+    theta3 = jointAngle(3);
+%     Chazhi = [];
+%     X3 = [];
+%     X2 = [];
+    flagSlowDown = 0;
+
+    while norm(CurrentPoint-EndPoint)>1
+        num = num+1;
+        PointsSequence(1,num) = tcurrent;
+        PointsSequence(2,num) = theta1;
+        PointsSequence(3,num) = theta2;
+        PointsSequence(4,num) = theta3;
+        
+        [vtheta2,vtheta3] = GetCurrentvtheta3(jointAngle,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3);
+        x3 = vtheta3^2/(2*amaxtheta3)+vtheta3*tinterval/2;
+%         x2 = vtheta2^2/(2*amaxtheta2)+vtheta2*tinterval/2;
+        
+        if abs(x3-(jointAngleEnd(3)-jointAngle(3)))<1
+            flagSlowDown = 1;
+        end
+%         Chazhi = [Chazhi jointAngleEnd(3)-jointAngle(3)];
+%         X3 = [X3;x3];
+%         X2 = [X2;x2];
+        
+        vtheta2Last = vtheta2;
+        vtheta3Last = vtheta3;
+        theta2 = theta2 + vtheta2*tinterval;
+        theta3 = theta3 + vtheta3*tinterval;
+        theta2 = legalizAnger(theta2);
+        theta3 = legalizAnger(theta3);
+        jointAngle = [theta1 theta2 theta3];
+        tcurrent = tcurrent + tinterval;
+        [pos1,pos2] = ForwardKinematics([theta1 theta2 theta3 0]);
+        CurrentPoint = pos1(1:3,4);
+        CurrentPoint = CurrentPoint';
+        
+        if flagSlowDown == 1
+            break; %之后就开始减速 以两个关节都能承受的加速度进行减速，只不过最后可能会超出末位置 如果是以最大值进行减速，则正好到目标点，否则会超过目标点。要尽可能使加速度达到最大！
+        end
+    end
+%     figure
+%     plot(Chazhi)
+%     plot(X3)
+%     hold on 
+%     plot(X2)
+
+    if flagSlowDown == 1
+        while abs(vtheta3)>0.1
+            k2 = theta2*pi/180;
+            k3 = theta3*pi/180;
+            acurrenttheta2 = amaxtheta2;
+            acurrenttheta3 = amaxtheta3;
+            if amaxtheta2 < abs((2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2))*amaxtheta3)
+                %说明amaxtheta2 带不动amaxtheta3
+                acurrenttheta3 = acurrenttheta2/((2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)));
+                acurrenttheta3 = abs(acurrenttheta3);
+                disp('要注意铲斗不是精确到目标位置!要想精确，首先提高加速度约束的大小');
+            end
+            if vtheta3 < 0
+                vtheta3 = vtheta3 + acurrenttheta3*tinterval;
+            else
+                vtheta3 = vtheta3 - acurrenttheta3*tinterval;
+            end
+            d_k3 = vtheta3*pi/180;
+            d_k2 = -(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)); %这是通过求雅可比矩阵得到的对应关系
+            vtheta2 = d_k2*180/pi;
+            theta2 = theta2 + vtheta2*tinterval;
+            theta3 = theta3 + vtheta3*tinterval;
+            theta2 = legalizAnger(theta2);
+            theta3 = legalizAnger(theta3);
+            
+            num = num+1;
+            PointsSequence(1,num) = tcurrent;
+            PointsSequence(2,num) = theta1;
+            PointsSequence(3,num) = theta2;
+            PointsSequence(4,num) = theta3;
+            tcurrent = tcurrent + tinterval;
+        end
+    end
+    [pos1,pos2] = ForwardKinematics([PointsSequence(2,end) PointsSequence(3,end) PointsSequence(4,end) 0]);
+    CurrentPoint = pos1(1:3,4);
+    CurrentPoint = CurrentPoint';
+    
+    %接下来只要在上述规划时间内把铲斗摆动到预期位置即可
+    
+    success = 0;
+    k_tf = 1.1;
+    tf = PointsSequence(1,end)/k_tf;
+    while success == 0
+        tf = k_tf*tf;
+        [theta4sequence,success] = ManipulatorPlanningJointSpace(theta4begin,theta4end,tf,amaxtheta4,Vmaxtheta4,tinterval);
+    end
+    enddistance = norm(CurrentPoint-EndPoint) %这是误差，经过少量测试，误差不会超过2cm
+end
+
+function thetaout = legalizAnger(theta) %把角度限制在(-180,180]
+    thetaout = theta;
+    while theta>180 
+        thetaout = theta-360;
+    end
+    while theta<=-180
+        thetaout = theta+360;
+    end
+end
+
+function [vtheta2,vtheta3] = GetCurrentvtheta3(CurrentJointAngle,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3)%输出满足加速度限制的当前时刻速度值
+    amaxtheta2 = amaxtheta2*pi/180;
+    amaxtheta3 = amaxtheta3*pi/180;
+    fuhao = 1;
+    lastd_k2 = vtheta2Last*pi/180;
+    lastd_k3 = vtheta3Last*pi/180;
+    flagonce = 0;
+    xishu = 0.3; %每次迭代的缩放系数
+    k_yuzhi = 0.9; %先设置为允许的留有一定裕度的最大值
+   
+%      jointAngle = InverseKinematicsPos2Angle(CurrentPoint);
+    theta1 = CurrentJointAngle(1);
+    theta2 = CurrentJointAngle(2);
+    theta3 = CurrentJointAngle(3);
+    [pos1,pos2] = ForwardKinematics([theta1 theta2 theta3 0]);
+    CurrentPoint = pos1(1:3,4);
+    CurrentPoint = CurrentPoint';
+    
+    [Vtheta2range,Vtheta3range] = LinearDiggingGetRange(Vmaxtheta2,Vmaxtheta3,theta2,theta3);
+    
+    theta1 = theta1*pi/180;
+    theta2 = theta2*pi/180;
+    theta3 = theta3*pi/180;
+    k1 = theta1; k2 = theta2; k3 = theta3;
+    
+    lasta_k2 = 0;
+    lasta_k3 = 0;
     while 1
         if flagonce == 0
             if vtheta3Last<0
-                vtheta3 = -Vtheta3range; %先设置为允许的最大值
+                vtheta3 = -k_yuzhi*Vtheta3range; %先设置为允许的留有一定裕度的最大值
             else
-                vtheta3 = Vtheta3range;
+                vtheta3 = k_yuzhi*Vtheta3range;
             end
             flagonce = 1;
         else
             if abs(vtheta3)<abs(vtheta3Last)
-                vtheta3tmp = abs(vtheta3) + xishu*(abs(vtheta3Last)-abs(vtheta3));
+                if Vtheta3range>=abs(vtheta3Last)
+                    upper = abs(vtheta3Last);
+                else
+                    upper = Vtheta3range;
+                end
+                vtheta3tmp = abs(vtheta3) + xishu*(upper-abs(vtheta3));
             else
                 vtheta3tmp = abs(vtheta3) - xishu*(abs(vtheta3)-abs(vtheta3Last));
             end
@@ -415,7 +1040,15 @@ function vtheta3 = GetCurrentvtheta3(CurrentPoint,EndPoint,tinterval,vtheta2Last
 %         CurrentPoint = CurrentPoint+tinterval*[Vx Vy 0];
         a_k2 = abs((d_k2-lastd_k2)/tinterval);
         a_k3 = abs((d_k3-lastd_k3)/tinterval);
+        if abs(a_k2-lasta_k2)<0.001 && abs(a_k3-lasta_k3)<0.000001
+            error('需要重新修改相关参数，这组参数无法满足加速度约束');
+            break;
+        end
+        lasta_k2 = a_k2;
+        lasta_k3 = a_k3;
         if a_k2<=amaxtheta2 && a_k3<=amaxtheta3
+            vtheta3 = d_k3*180/pi;
+            vtheta2 = d_k2*180/pi;
             break;
         end
     end
@@ -726,8 +1359,9 @@ function jointAngle = InverseKinematics(position)
     end
 end
 
-function PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VMAX,SampleTime) %默认初始末点速度为0，加速度为0;
+function [PointsSequence,success] = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VMAX,SampleTime) %默认初始末点速度为0，加速度为0;
 %-180,180 角度体系
+    success = 0;
     flagNeedXG = 0;
     if theta0*thetaf<0
         if theta0>0
@@ -755,18 +1389,18 @@ function PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VM
         a_LowerBound = 4*(theta0-thetaf)/( (k-1)*tf^2 );
         a_Uppertemp = VMAX^2 / ( (1-k)*(theta0-thetaf+tf*VMAX) );
         if a_Uppertemp<a_LowerBound
-            erro('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+            disp('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
             return;
         end
         if a_Uppertemp>=AMAX
             if AMAX<a_LowerBound
-                erro('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
+                disp('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
                 return;
             end
             a_UpperBound = AMAX;
         else
             if a_Uppertemp<a_LowerBound
-                erro('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+                disp('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
                 return;
             end
             a_UpperBound = a_Uppertemp;
@@ -813,18 +1447,18 @@ function PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VM
         a_LowerBound = 4*(theta0-thetaf)/( (k-1)*tf^2 );
         a_Uppertemp = VMAX^2 / ( (1-k)*(theta0-thetaf+tf*VMAX) );
         if a_Uppertemp<a_LowerBound
-            erro('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+            disp('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
             return;
         end
         if a_Uppertemp>=AMAX
             if AMAX<a_LowerBound
-                erro('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
+                disp('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
                 return;
             end
             a_UpperBound = AMAX;
         else
             if a_Uppertemp<a_LowerBound
-                erro('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+                disp('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
                 return;
             end
             a_UpperBound = a_Uppertemp;
@@ -873,6 +1507,7 @@ function PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VM
             end
         end
     end
+    success = 1;
 end
 
 function [Sequenceout,YES] = BFS(MapRelation,beginnum,endnum)
@@ -1397,6 +2032,69 @@ function PointsSet = RandGenratePointInWorkSpace(num)
         y0 = RandGenerateNumber(down,up,1);
         PointsSet = [PointsSet;[13.7 * cos(theta) - y0 * sin(theta) , 13.7 * sin(theta) + y0 * cos(theta) , z]];
     end
+end
+
+function [PointA,PointB] = RandGenratePointLineParallelground() %生成两个点，这两个点在一条平行于地面的直线上，且与挖机臂共面 
+    global yudu;
+    r = RandGenerateNumber(-441.0118,459.8,1);
+    
+    z = r;
+    if z<=459.8 && z>=165.25
+        up = -0.0009554*z^2+0.1704*z+662.7 - yudu;
+        down = (-0.3377*z^2+810.5*z-90990)/(z-74.85) + yudu;
+
+    end
+    if z<165.25 && z>=-274.405
+        up = -0.000818*z^2+0.0902*z+671.8 - yudu;
+        down = 2.897*10^-6*z^3-0.001479*z^2+0.1196*z+370 + yudu;
+
+    end
+    if z<-274.405 && z>=-441.0118
+        up = 2.453*10^-5*z^3+0.02358*z^2+8.212*z+1572 - yudu;
+        down = -3.011*10^-5*z^3-0.02679*z^2-8.276*z-721.3 + yudu;
+
+    end
+
+    theta = RandGenerateNumber(0,2*pi,1);
+    
+    y01 = RandGenerateNumber(down,down+(up-down)/10,1);
+    y02 = RandGenerateNumber(up-(up-down)/10,up,1);
+    PointA = [13.7 * cos(theta) - y01 * sin(theta) , 13.7 * sin(theta) + y01 * cos(theta) , z];
+    PointB = [13.7 * cos(theta) - y02 * sin(theta) , 13.7 * sin(theta) + y02 * cos(theta) , z];
+end
+
+function [PointA,PointB] = RandGenratePointDirectLine()%生成两个点，这两个点在一直线上，与挖机臂共面 但这俩直线不一定是直线可达的
+    global yudu;
+    num = 2;
+    if num == 0
+        PointSet = [];
+        return ;
+    end
+    r = RandGenerateNumber(-441.0118,459.8,num);
+    theta = RandGenerateNumber(0,2*pi,1);
+    PointsSet = [];
+    for i = 1:size(r,1)
+        z = r(i);
+        if z<=459.8 && z>=165.25
+            up = -0.0009554*z^2+0.1704*z+662.7 - yudu;
+            down = (-0.3377*z^2+810.5*z-90990)/(z-74.85) + yudu;
+            
+        end
+        if z<165.25 && z>=-274.405
+            up = -0.000818*z^2+0.0902*z+671.8 - yudu;
+            down = 2.897*10^-6*z^3-0.001479*z^2+0.1196*z+370 + yudu;
+            
+        end
+        if z<-274.405 && z>=-441.0118
+            up = 2.453*10^-5*z^3+0.02358*z^2+8.212*z+1572 - yudu;
+            down = -3.011*10^-5*z^3-0.02679*z^2-8.276*z-721.3 + yudu;
+            
+        end
+        y0 = RandGenerateNumber(down,up,1);
+        PointsSet = [PointsSet;[13.7 * cos(theta) - y0 * sin(theta) , 13.7 * sin(theta) + y0 * cos(theta) , z]];
+    end
+    PointA = PointsSet(1,:);
+    PointB = PointsSet(2,:);
 end
 
 function PointsSet = GenratePointInner(num)%生成分布在工作空间内壁的点
