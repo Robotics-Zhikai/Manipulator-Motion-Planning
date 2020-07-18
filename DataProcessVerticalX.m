@@ -192,14 +192,21 @@ zlabel('z');
 
 % PointA = [485.3701  -70.5901  -79.9666];
 % PointB = [644.7731  -89.2429   61.6302];
-% [PointA,PointB] = RandGenratePointLineParallelground();
 PointA = [246.1835  433.8464 -198.6287];
 PointB = [270.0888  478.8083  189.0505];
+
+PointA =[ -261.5394  350.6374 -394.8072];
+ PointB =[-233.3764  315.2493  -91.7352];
+% PointA = [119.2325 -382.0152  111.4385];
+% PointB = [202.7214 -620.4793  111.4385];
+% [PointA,PointB] = RandGenratePointLineParallelground();
+
+
 % [PointA,PointB] = RandGenratePointDirectLine();
 hold on
 plot3([PointA(1) PointB(1)],[PointA(2) PointB(2)],[PointA(3) PointB(3)],'o');
 % PointsSequence = LinearDigPlanningParallel2ground(PointA,PointB,-100,30,30,30,30,5,15,15);
-% PointsSequence = LinearDigPlanningRandomLine(PointA,PointB,-100,30,50,50,50,25,25,25);
+% PointsSequence = LinearDigPlanningRandomLine(PointA,PointB,-100,30,30,30,30,5,15,15);
 PointsSequence = LinearDigPlanningRandomLine(PointA,PointB,-100,30,150,150,150,15,25,25);
 % LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)
 figure
@@ -214,15 +221,15 @@ for i=1:size(PointsSequence,2)
     [position1,position2] = ForwardKinematics([PointsSequence(2:4,i);0]);
     cartesianSequence = [cartesianSequence [PointsSequence(1,i);position1(1:3,4)]];
 end
-% figure
-% plot(cartesianSequence(1,:),cartesianSequence(2,:),'r-');
-% hold on
-% plot(cartesianSequence(1,:),cartesianSequence(3,:),'b-');
-% hold on
-% plot(cartesianSequence(1,:),cartesianSequence(4,:),'y-');
-% hold on
-% 
-% figure
+figure
+plot(cartesianSequence(1,:),cartesianSequence(2,:),'r-');
+hold on
+plot(cartesianSequence(1,:),cartesianSequence(3,:),'b-');
+hold on
+plot(cartesianSequence(1,:),cartesianSequence(4,:),'y-');
+hold on
+
+figure
 for i=1:10:size(cartesianSequence,2)
     plot3(cartesianSequence(2,i),cartesianSequence(3,i),cartesianSequence(4,i),'.');
     hold on
@@ -405,9 +412,7 @@ function [PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoin
     theta1 = jointAngle(1);
     theta2 = jointAngle(2);
     theta3 = jointAngle(3);
-%     Chazhi = [];
-%     X3 = [];
-%     X2 = [];
+
     flagSlowDown = 0;
 figure
     while norm(CurrentPoint-EndPoint)>1
@@ -418,12 +423,12 @@ figure
         PointsSequence(4,num) = theta3;
         
         [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(jointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3);
-        x3 = vtheta3^2/(2*amaxtheta3)+vtheta3*tinterval/2;
+        x3 = vtheta3^2/(2*amaxtheta3)+abs(vtheta3)*tinterval/2;
 %         x2 = vtheta2^2/(2*amaxtheta2)+vtheta2*tinterval/2;
 %          Chazhi =  jointAngleEnd(3)-jointAngle(3);
       
         subplot(131)
-        plot(num,vtheta2,'.');
+        plot(num,abs(x3-abs(jointAngleEnd(3)-jointAngle(3))),'.');
         hold on 
         subplot(133)
         plot(num,norm(CurrentPoint-EndPoint),'.');
@@ -432,8 +437,8 @@ figure
         plot(num,vtheta3,'.');
         hold on
         pause(0.1);
-
-        if abs(x3-(jointAngleEnd(3)-jointAngle(3)))<2 %&& norm(CurrentPoint-EndPoint)<10
+        if abs(x3-abs(jointAngleEnd(3)-jointAngle(3)))<2
+%         if abs(x3-(jointAngleEnd(3)-jointAngle(3)))<2 %&& norm(CurrentPoint-EndPoint)<10
             if norm(CurrentPoint-EndPoint)<100
                 flagSlowDown = 1;
             end
@@ -453,16 +458,11 @@ figure
         [pos1,pos2] = ForwardKinematics([theta1 theta2 theta3 0]);
         CurrentPoint = pos1(1:3,4);
         CurrentPoint = CurrentPoint';
-        norm(CurrentPoint-EndPoint)
+%         norm(CurrentPoint-EndPoint)
         if flagSlowDown == 1
             break; %之后就开始减速 以两个关节都能承受的加速度进行减速，只不过最后可能会超出末位置 如果是以最大值进行减速，则正好到目标点，否则会超过目标点。要尽可能使加速度达到最大！
         end
     end
-    
-%     plot(Chazhi)
-%     plot(X3)
-%     hold on 
-%     plot(X2)
 
     if flagSlowDown == 1
         while abs(vtheta3)>0.1
@@ -619,6 +619,7 @@ function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(CurrentJointAngle,Start
     Vtheta2set = [];
     Vtheta3set = [];
     d_k2Storage = [];
+    d_k3Storage = [];
     for i=1:2
         d_k3 = Fita_Vtheta3(i);
 %         d_k3 = fuhao * vtheta3 * pi/180;
@@ -629,15 +630,18 @@ function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(CurrentJointAngle,Start
                 d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))*d_k3/(- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1);
             end
         end
-%         d_k2 = fuhao * (-(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)));
 
         Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
         Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
         Vz = d_k2*((2109*cos(k2 + k3))/10 + 460*cos(k2)) + (2109*d_k3*cos(k2 + k3))/10;
         if dot(EndPoint-CurrentPoint,[Vx,Vy,Vz])<0
-            fuhao = -fuhao;
-            d_k3 = -d_k3;
-            d_k2 = -d_k2;
+            if Fita_Vtheta3(1)*Fita_Vtheta3(2)<0
+                d_k3 = 0;
+                d_k2 = 0;
+            else
+                d_k3 = -d_k3;
+                d_k2 = -d_k2;
+            end
             Vx = - (d_k2*cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*cos(k1))/10;
             Vy = - (d_k2*sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2)))/10 - (2109*d_k3*sin(k2 + k3)*sin(k1))/10;
             Vz = d_k2*((2109*cos(k2 + k3))/10 + 460*cos(k2)) + (2109*d_k3*cos(k2 + k3))/10;
@@ -646,36 +650,81 @@ function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(CurrentJointAngle,Start
             end
         end
         d_k2Storage = [d_k2Storage d_k2*180/pi];
-        if d_k2>=Fita_Vtheta2Lower-0.01 && d_k2<=Fita_Vtheta2Upper+0.01
-            vtheta3 = d_k3*180/pi;
-            vtheta2 = d_k2*180/pi;
-            Vtheta2set = [Vtheta2set vtheta2];
-            Vtheta3set = [Vtheta3set vtheta3];
-            flagYESsolution = flagYESsolution+1;
-%             break;
-        end
-%         CurrentPoint = CurrentPoint+tinterval*[Vx Vy 0];
-        a_k2 = abs((d_k2-lastd_k2)/tinterval);
-        a_k3 = abs((d_k3-lastd_k3)/tinterval);
+        d_k3Storage = [d_k3Storage d_k3*180/pi];
+%         yuzhithistime = 0;
+%         if d_k2>=Fita_Vtheta2Lower-yuzhithistime && d_k2<=Fita_Vtheta2Upper+yuzhithistime
+%             vtheta3 = d_k3*180/pi;
+%             vtheta2 = d_k2*180/pi;
+%             Vtheta2set = [Vtheta2set vtheta2];
+%             Vtheta3set = [Vtheta3set vtheta3];
+%             flagYESsolution = flagYESsolution+1;
+%         end
+
+%         a_k2 = abs((d_k2-lastd_k2)/tinterval);
+%         a_k3 = abs((d_k3-lastd_k3)/tinterval);
     end
-%     if flagYESsolution == 2
-%         Vtheta2set
-%         Vtheta3set
-%     end
-    if flagYESsolution == 0
+
+    vtheta2intersection = GetIntersection(d_k2Storage,[Fita_Vtheta2Lower*180/pi Fita_Vtheta2Upper*180/pi]);
+    vtheta3intersection = GetIntersection(d_k3Storage,[Fita_Vtheta3Lower*180/pi Fita_Vtheta3Upper*180/pi]);
+    
+    if isempty(vtheta2intersection)==1 || isempty(vtheta3intersection)==1
         error('需要重新修改相关参数，这组参数无法满足加速度约束');
-    else
-        if flagYESsolution == 1
-            %20200716 这个必须得考虑一个区间
-            vtheta2 = Vtheta2set(1);
-            vtheta3 = Vtheta3set(1);
-        else
-            kthis = 0.9;
-            vtheta2 = GetVelocityInRange(Vtheta2set(1),Vtheta2set(2),kthis);
-            vtheta3 = GetVelocityInRange(Vtheta3set(1),Vtheta3set(2),kthis);
-            %20200716 这里有bug 对应关系
-        end
     end
+    vtheta3intersectiontmp = [];
+    for i=1:size(vtheta2intersection,2)
+        d_k2 = vtheta2intersection(i)*pi/180;
+        if x0~=x1
+            Vtheta3tmp = (- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1)*d_k2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1))));
+        else
+            if y0~=y1
+                Vtheta3tmp = (- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1)*d_k2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1))));
+            else
+                disp('说明只有z方向，此时只有一组vtheta2 vthata3的解')
+            end
+        end
+        vtheta3intersectiontmp(1,i) = Vtheta3tmp*180/pi;
+    end
+    
+    if isempty(GetIntersection(vtheta3intersectiontmp,vtheta3intersection))==1
+        erro('程序逻辑出错！');
+    end
+    
+    vtheta2reliablerange = vtheta2intersection; %可靠的取值范围
+    vtheta3reliablerange = vtheta3intersectiontmp;
+    
+    if isempty(vtheta2reliablerange)==1 || isempty(vtheta3reliablerange)==1
+        erro('程序逻辑出错！');
+    end
+    
+%     vtheta3 = vtheta3reliablerange(end);
+%     vtheta2 = vtheta2reliablerange(end);
+%     if abs(vtheta2) <=0.00001 && abs(vtheta3) <= 0.00001
+%         vtheta3 = vtheta3reliablerange(1);
+%         vtheta2 = vtheta2reliablerange(1);
+%     end
+    
+    if abs(vtheta3reliablerange(end))>=abs(vtheta3reliablerange(1))
+        vtheta3 = vtheta3reliablerange(1) + (vtheta3reliablerange(end)-vtheta3reliablerange(1))*(0.9);
+        vtheta2 = vtheta2reliablerange(1) + (vtheta2reliablerange(end)-vtheta2reliablerange(1))*(0.9);
+    else
+        vtheta3 = vtheta3reliablerange(1) + (vtheta3reliablerange(end)-vtheta3reliablerange(1))*(0.1);
+        vtheta2 = vtheta2reliablerange(1) + (vtheta2reliablerange(end)-vtheta2reliablerange(1))*(0.1);
+    end
+%     if flagYESsolution == 0
+%         error('需要重新修改相关参数，这组参数无法满足加速度约束');
+%     else
+%         if flagYESsolution == 1
+%             %20200716 这个必须得考虑一个区间
+%             vtheta2intersection = GetIntersection(d_k2Storage,[Fita_Vtheta2Lower*180/pi Fita_Vtheta2Upper*180/pi]);
+%             vtheta2 = Vtheta2set(1);
+%             vtheta3 = Vtheta3set(1);
+%         else
+%             kthis = 0.9;
+%             vtheta2 = GetVelocityInRange(Vtheta2set(1),Vtheta2set(2),kthis);
+%             vtheta3 = GetVelocityInRange(Vtheta3set(1),Vtheta3set(2),kthis);
+%             %20200716 这里有bug 对应关系
+%         end
+%     end
     
 %     while 1
 %         if flagonce == 0
@@ -750,24 +799,75 @@ end
 
 function out = GetIntersection(qujianA,qujianB)
 %20200717 写这个交集函数
-    if qujianA(1)>qujianA(2)
+    out = [];
+    if isempty(qujianA)==1 || isempty(qujianB)==1
+        out = [];
+        return;
+    end
+    if size(qujianA,2)==2 && qujianA(1)==qujianA(2)
+        qujianA = qujianA(1);
+    end
+    if size(qujianB,2)==2 && qujianB(1)==qujianB(2)
+        qujianB = qujianB(1);
+    end
+    if size(qujianA,2)==1 && size(qujianB,2)==1
+        if qujianA == qujianB
+            out = qujianA;
+        else
+            out = [];
+        end
+        return;
+    end
+    if size(qujianA,2)==2 && qujianA(1)>qujianA(2)
         tmp = qujianA(1);
         qujianA(1) = qujianA(2);
         qujianA(2) = tmp;
     end
-    if qujianB(1)>qujianB(2)
+    if size(qujianB,2)==2 && qujianB(1)>qujianB(2)
         tmp = qujianB(1);
         qujianB(1) = qujianB(2);
         qujianB(2) = tmp;
     end
-    if qujianA(2)<qujianB(1)
-        out = [];
-    else
-        if qujianA(2)==qujianB(1)
-            out = qujian(1);
+    if size(qujianA,2)==1 && size(qujianB,2)==2
+        if qujianA(1)<qujianB(1) || qujianA(1)>qujianB(2)
+            out=[];
         else
-            if qujianA(1)<=qujianB(1)
-                out = [qujianB(1),qujianA(2)];
+            out = qujianA(1);
+        end
+        return;
+    end
+    if size(qujianA,2)==2 && size(qujianB,2)==1
+        if qujianB(1)<qujianA(1) || qujianB(1)>qujianA(2)
+            out=[];
+        else
+            out = qujianB(1);
+        end
+        return;
+    end
+    
+    if qujianA(2)<qujianB(1) || qujianA(1)>qujianB(2)
+        out = [];
+    else 
+        if qujianA(2)==qujianB(1)
+            out = qujianA(2);
+        end
+        if qujianA(1)==qujianB(2)
+            out = qujianB(2);
+        end
+        if isempty(out) == 0
+            return;
+        end
+        if qujianA(1)<=qujianB(1)
+            if qujianA(2)>qujianB(1) && qujianA(2)<=qujianB(2)
+                out = [qujianB(1) qujianA(2)];
+            else
+                out = [qujianB(1) qujianB(2)];
+            end
+        else
+            if qujianA(2)>qujianB(1) && qujianA(2)<=qujianB(2)
+                out = [qujianA(1) qujianA(2)];
+            else
+                out = [qujianA(1) qujianB(2)];
             end
         end
     end
