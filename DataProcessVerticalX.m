@@ -183,32 +183,65 @@ zlabel('z');
 % PointB = [  424.5138   63.3608 -433.8036];
 % PointA = [463.7004  241.4290  232.3442];
 % PointB = [559.8579  294.7425  232.3442];
-
-% PointA = [-369.7680  429.8885  237.5011]; %Õâ×éÊý¾ÝÃ»½â¾ö
+% 
+% PointA = [-369.7680  429.8885  237.5011]; %Õâ×éÊý¾ÝÃ»½â¾ö Ì«Ô¶ÁË
 % PointB = [-198.6941  240.4567 -424.4452];
-
+% 
 % PointA = [ -391.7412   65.5419   71.7357];
 % PointB = [ -633.5337   97.4666   71.7357];
-
+% 
 % PointA = [485.3701  -70.5901  -79.9666];
 % PointB = [644.7731  -89.2429   61.6302];
-PointA = [246.1835  433.8464 -198.6287];
-PointB = [270.0888  478.8083  189.0505];
+% 
+% PointA = [246.1835  433.8464 -198.6287];
+% PointB = [270.0888  478.8083  189.0505];
+% 
+% PointA =[ -261.5394  350.6374 -394.8072];
+%  PointB =[-233.3764  315.2493  -91.7352];
+%  
+% PointA =[274.5714  196.5539 -382.0456];
+% PointB =[321.2116  232.8917    7.0803];
 
-PointA =[ -261.5394  350.6374 -394.8072];
- PointB =[-233.3764  315.2493  -91.7352];
+% PointA = [354.0106 -435.6780  -32.4926];
+% PointB = [267.0331 -333.8189 -338.3796];
+% % 
+% PointA = [268.5458   54.8532 -371.7460];
+% PointB = [457.5957  103.4262   74.9699];
+% 
+% PointA = [489.1682 -101.2488 -268.1016];
+% PointB = [541.9250 -110.6676 -111.4149];
+% 
 % PointA = [119.2325 -382.0152  111.4385];
 % PointB = [202.7214 -620.4793  111.4385];
+
+PointA = [30.7067  555.4801  -37.7431];
+PointB = [31.5287  582.3382  -17.0655];
+
+PointA = [-143.2123 -535.1863  455.5310];
+PointB = [-139.0547 -517.9537  455.5310];
+
+PointA = [340.1339  -56.7429 -131.9876];
+PointB = [625.5572  -92.7711 -131.9876];
+
+PointA = [386.4498 -109.7516   31.0126];
+PointB = [641.1969 -172.7961   31.0126];
+
+PointA = [-576.2108 -114.8458  321.1456];
+PointB = [-514.5045 -101.0436   59.8012];
 % [PointA,PointB] = RandGenratePointLineParallelground();
 
 
-% [PointA,PointB] = RandGenratePointDirectLine();
+[PointA,PointB] = RandGenratePointDirectLine();
 hold on
 plot3([PointA(1) PointB(1)],[PointA(2) PointB(2)],[PointA(3) PointB(3)],'o');
 % PointsSequence = LinearDigPlanningParallel2ground(PointA,PointB,-100,30,30,30,30,5,15,15);
 % PointsSequence = LinearDigPlanningRandomLine(PointA,PointB,-100,30,30,30,30,5,15,15);
+
+times= tic;
 PointsSequence = LinearDigPlanningRandomLine(PointA,PointB,-100,30,150,150,150,15,25,25);
+toc(times)
 % LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)
+
 figure
 plot(PointsSequence(1,:),PointsSequence(2,:),'r-');
 hold on 
@@ -221,16 +254,16 @@ for i=1:size(PointsSequence,2)
     [position1,position2] = ForwardKinematics([PointsSequence(2:4,i);0]);
     cartesianSequence = [cartesianSequence [PointsSequence(1,i);position1(1:3,4)]];
 end
-figure
-plot(cartesianSequence(1,:),cartesianSequence(2,:),'r-');
-hold on
-plot(cartesianSequence(1,:),cartesianSequence(3,:),'b-');
-hold on
-plot(cartesianSequence(1,:),cartesianSequence(4,:),'y-');
-hold on
-
-figure
-for i=1:10:size(cartesianSequence,2)
+% figure
+% plot(cartesianSequence(1,:),cartesianSequence(2,:),'r-');
+% hold on
+% plot(cartesianSequence(1,:),cartesianSequence(3,:),'b-');
+% hold on
+% plot(cartesianSequence(1,:),cartesianSequence(4,:),'y-');
+% hold on
+% 
+% figure
+for i=1:5:size(cartesianSequence,2)
     plot3(cartesianSequence(2,i),cartesianSequence(3,i),cartesianSequence(4,i),'.');
     hold on
     pause(0.1);
@@ -379,15 +412,96 @@ plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
 
 %%
 %functions
-function [PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)%½â¾öÈÎÒâ¿ÉÖ±´ïÖ±ÏßÍÚ¾ò
+function[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)%½â¾öÈÎÒâ¿ÉÖ±´ïÖ±ÏßÍÚ¾ò
+%ÎªÁË½â¾ö¼ÓÉÏpid¿ØÖÆºó²»ÄÜ¾«È·µ½´ïÄ¿±êÎ»ÖÃµÄÎÊÌâ
+    begindistance = norm(StartPoint-EndPoint)
+    EndPointtmp = EndPoint;
+    
+    kp = 1.1;
+    ki = 0.002;
+    kd = 0.65;
+%     
+%     kp = 1.2;
+%     ki = 0.002;
+%     kd = 0.65;
+    
+    [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDigPlanningRandomLinesub(kp,ki,kd,StartPoint,EndPointtmp,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4);
+    if DirectReachable==0
+        error('ÊäÈëµÄÁ½µã²»ÊÇÖ±½ÓµÄÖ±Ïß¿É´ï£¡·µ»ØÉÏÒ»²ãº¯Êý403');
+        return;
+    end
+    
+    lastdirection = 0;
+    countTimes = 0;
+    Sumerro = 0;
+    
+    kpScale = 0.001;
+    kiScale = 0.00015;%Õâ¸öµÃ¾¡Á¿Ð¡£¬·ñÔòÒ»²»Ð¡ÐÄ¾Í»ý´óÁË
+            
+    while norm(EndPoint-endPosition)>1
+        endPositionStorage = endPosition;
+%         [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDigPlanningRandomLinesub(1.1,0.002,0.65,StartPoint,EndPointtmp,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4);
+        [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDigPlanningRandomLinesub(kp,ki,kd,StartPoint,EndPointtmp,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4);
+        
+        if DirectReachable==0
+            while IsDirectReachable(StartPoint,EndPointtmp)==0
+                EndPointtmp = StartPoint + (1-0.005) * (EndPointtmp-StartPoint);
+            end
+            endPosition = endPositionStorage;
+            continue;
+        else
+            if dot(StartPoint-endPosition,EndPoint-endPosition)<0
+                direction = 1;
+            else
+                direction = -1;
+            end
+            
+            if direction*lastdirection == -1
+                countTimes = countTimes + 1;
+                if countTimes>5
+                    ki = 0;
+                    kiScale = 0;
+                    EndPointtmp = EndPoint;
+                    lastdirection = 0;
+                    countTimes = 0;
+                    continue;
+                end
+            else
+                countTimes = 0;
+            end
+            lastdirection = direction;
+
+            %         EndPointtmp = StartPoint + (1+direction*0.1) * (EndPointtmp-StartPoint);
+            
+            Sumerro = Sumerro+norm(EndPoint-endPosition);
+            sumI = kiScale*Sumerro
+            xishu = kpScale*norm(EndPoint-endPosition) + kiScale*Sumerro;
+            xishu = Limit2range(xishu,[0,0.1]);
+            EndPointtmp = StartPoint + (1+direction*xishu) * (EndPointtmp-StartPoint);
+        end
+        
+%         plot3(EndPointtmp(1),EndPointtmp(2),EndPointtmp(3),'o');
+%         hold on 
+%         pause(0.1);
+        norm(EndPoint-endPosition)
+    end
+    [pos1,pos2] = ForwardKinematics([PointsSequence(2,end) PointsSequence(3,end) PointsSequence(4,end) 0]);
+    CurrentPoint = pos1(1:3,4);
+    CurrentPoint = CurrentPoint';
+    enddistance = norm(CurrentPoint-EndPoint)
+end
+
+function [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDigPlanningRandomLinesub(kp,ki,kd,StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)%½â¾öÈÎÒâ¿ÉÖ±´ïÖ±ÏßÍÚ¾òµÄ×Óº¯Êý
   %PointsSequence ´æ´¢theta1 theta2 theta3 ËæÊ±¼ä±ä»¯µÄÐòÁÐ
     if IsDirectReachable(StartPoint,EndPoint) == 0
         PointsSequence = [];
         theta4sequence = [];
-        error('ÊäÈëµÄÁ½µã²»ÊÇÖ±½ÓµÄÖ±Ïß¿É´ï£¡');
+        DirectReachable = 0;
+        endPosition = [];
+        disp('ÊäÈëµÄÁ½µã²»ÊÇÖ±½ÓµÄÖ±Ïß¿É´ï£¡·µ»ØÉÏÒ»²ãº¯Êý');
         return;
     end
-    begindistance = norm(StartPoint-EndPoint)
+    DirectReachable = 1;
     PointsSequence = [];
     tinterval = 0.01; %ÔÈËÙÔË¶¯Ê±¼äÊÇ0.01Ãë
     angleinterval = 1; %Ã¿´Î¹Ø½ÚÔË¶¯1¶È
@@ -413,39 +527,57 @@ function [PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoin
     theta2 = jointAngle(2);
     theta3 = jointAngle(3);
 
-    flagSlowDown = 0;
-figure
+    Sumerrovalue = 0;
+    Lasterrovalue = norm(CurrentPoint-EndPoint)/norm(StartPoint-EndPoint);
+    Queue = [];
+    QueueSize = 15;
+%     flagSlowDown = 0;
+% figure
     while norm(CurrentPoint-EndPoint)>1
+        Queue = [Queue norm(CurrentPoint-EndPoint)];
+        if size(Queue,2)==QueueSize+1
+            Queue(1) = [];
+        end
+        if size(Queue,2)==QueueSize
+            if abs(mean(Queue)-Queue(1))<0.1
+                break;
+            end
+        end
         num = num+1;
         PointsSequence(1,num) = tcurrent;
         PointsSequence(2,num) = theta1;
         PointsSequence(3,num) = theta2;
         PointsSequence(4,num) = theta3;
         
-        [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(jointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3);
+        errovalue = norm(CurrentPoint-EndPoint)/norm(StartPoint-EndPoint);
+        Sumerrovalue = Sumerrovalue+errovalue;
+        derrovalue = abs((errovalue-Lasterrovalue)/tinterval);
+%         k_xishuV = 1.1*errovalue + 0.002*Sumerrovalue - 0.65*derrovalue; %ÐÞ¸ÄÕâ¸öpidµÄ²ÎÊý´ïµ½¸üºÃµÄÐ§¹û
+        k_xishuV = kp*errovalue + ki*Sumerrovalue - kd*derrovalue;
+        k_xishuV = Limit2range(k_xishuV,[0,1]);
+        Lasterrovalue = errovalue;
+        
+        [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(k_xishuV,jointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3);
         x3 = vtheta3^2/(2*amaxtheta3)+abs(vtheta3)*tinterval/2;
-%         x2 = vtheta2^2/(2*amaxtheta2)+vtheta2*tinterval/2;
-%          Chazhi =  jointAngleEnd(3)-jointAngle(3);
       
-        subplot(131)
-        plot(num,abs(x3-abs(jointAngleEnd(3)-jointAngle(3))),'.');
-        hold on 
-        subplot(133)
-        plot(num,norm(CurrentPoint-EndPoint),'.');
-        hold on 
-        subplot(132)
-        plot(num,vtheta3,'.');
-        hold on
-        pause(0.1);
-        if abs(x3-abs(jointAngleEnd(3)-jointAngle(3)))<2
-%         if abs(x3-(jointAngleEnd(3)-jointAngle(3)))<2 %&& norm(CurrentPoint-EndPoint)<10
-            if norm(CurrentPoint-EndPoint)<100
-                flagSlowDown = 1;
-            end
-        end
-%         Chazhi = [Chazhi jointAngleEnd(3)-jointAngle(3)];
-%         X3 = [X3;x3];
-%         X2 = [X2;x2];
+%         subplot(131)
+%         plot(num,x3-abs(jointAngleEnd(3)-jointAngle(3)),'.');
+%         hold on 
+%         subplot(133)
+%         plot(num,norm(CurrentPoint-EndPoint),'.');
+%         hold on 
+%         subplot(132)
+%         plot(num,vtheta3,'.');
+%         hold on
+%         pause(0.1);
+
+%         if x3 > abs(jointAngleEnd(3)-jointAngle(3))
+% %         if abs(x3-abs(jointAngleEnd(3)-jointAngle(3)))<2
+% %         if abs(x3-(jointAngleEnd(3)-jointAngle(3)))<2 %&& norm(CurrentPoint-EndPoint)<10
+% %             if norm(CurrentPoint-EndPoint)<250
+%                 flagSlowDown = 1;
+% %             end
+%         end
         
         vtheta2Last = vtheta2;
         vtheta3Last = vtheta3;
@@ -459,68 +591,83 @@ figure
         CurrentPoint = pos1(1:3,4);
         CurrentPoint = CurrentPoint';
 %         norm(CurrentPoint-EndPoint)
-        if flagSlowDown == 1
-            break; %Ö®ºó¾Í¿ªÊ¼¼õËÙ ÒÔÁ½¸ö¹Ø½Ú¶¼ÄÜ³ÐÊÜµÄ¼ÓËÙ¶È½øÐÐ¼õËÙ£¬Ö»²»¹ý×îºó¿ÉÄÜ»á³¬³öÄ©Î»ÖÃ Èç¹ûÊÇÒÔ×î´óÖµ½øÐÐ¼õËÙ£¬ÔòÕýºÃµ½Ä¿±êµã£¬·ñÔò»á³¬¹ýÄ¿±êµã¡£Òª¾¡¿ÉÄÜÊ¹¼ÓËÙ¶È´ïµ½×î´ó£¡
-        end
+%         if flagSlowDown == 1
+%             break; %Ö®ºó¾Í¿ªÊ¼¼õËÙ ÒÔÁ½¸ö¹Ø½Ú¶¼ÄÜ³ÐÊÜµÄ¼ÓËÙ¶È½øÐÐ¼õËÙ£¬Ö»²»¹ý×îºó¿ÉÄÜ»á³¬³öÄ©Î»ÖÃ Èç¹ûÊÇÒÔ×î´óÖµ½øÐÐ¼õËÙ£¬ÔòÕýºÃµ½Ä¿±êµã£¬·ñÔò»á³¬¹ýÄ¿±êµã¡£Òª¾¡¿ÉÄÜÊ¹¼ÓËÙ¶È´ïµ½×î´ó£¡
+%         end
     end
 
-    if flagSlowDown == 1
-        while abs(vtheta3)>0.1
-            k1 = theta1*pi/180;
-            k2 = theta2*pi/180;
-            k3 = theta3*pi/180;
-            acurrenttheta2 = amaxtheta2;
-            acurrenttheta3 = amaxtheta3;
-            if x0 ~= x1
-                if amaxtheta2 < abs(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))/((- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1)))*amaxtheta3
+%     if flagSlowDown == 0 %±ØÐë¼õËÙ
+%         flagSlowDown = 1;
+%         EndPoint = StartPoint + 2*(EndPoint-StartPoint);
+%         x1 = EndPoint(1);
+%         y1 = EndPoint(2);
+%         z1 = EndPoint(3);
+%     end
     
-                    %ËµÃ÷amaxtheta2 ´ø²»¶¯amaxtheta3
-                    acurrenttheta3 = acurrenttheta2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))/((- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1)));
+%     if flagSlowDown == 1
+   
+    acurrenttheta3 = amaxtheta3;
+    while abs(vtheta3)>(acurrenttheta3*tinterval)
+        k1 = theta1*pi/180;
+        k2 = theta2*pi/180;
+        k3 = theta3*pi/180;
+        acurrenttheta2 = amaxtheta2;
+        acurrenttheta3 = amaxtheta3;
+        if x0 ~= x1
+            if amaxtheta2 < abs(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))/((- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1)))*amaxtheta3
+
+                %ËµÃ÷amaxtheta2 ´ø²»¶¯amaxtheta3
+                acurrenttheta3 = acurrenttheta2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))/((- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1)));
+                acurrenttheta3 = abs(acurrenttheta3);
+                disp('Òª×¢Òâ²ù¶·²»ÊÇ¾«È·µ½Ä¿±êÎ»ÖÃ!ÒªÏë¾«È·£¬Ê×ÏÈÌá¸ß¼ÓËÙ¶ÈÔ¼ÊøµÄ´óÐ¡');
+            end
+        else
+            if y0~=y1
+                if amaxtheta2 <abs(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))/((- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1)))
+                    acurrenttheta3 = acurrenttheta2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))/((- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1)));
                     acurrenttheta3 = abs(acurrenttheta3);
                     disp('Òª×¢Òâ²ù¶·²»ÊÇ¾«È·µ½Ä¿±êÎ»ÖÃ!ÒªÏë¾«È·£¬Ê×ÏÈÌá¸ß¼ÓËÙ¶ÈÔ¼ÊøµÄ´óÐ¡');
                 end
             else
-                if y0~=y1
-                    if amaxtheta2 <abs(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))/((- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1)))
-                        acurrenttheta3 = acurrenttheta2/(-(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))/((- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1)));
-                        acurrenttheta3 = abs(acurrenttheta3);
-                        disp('Òª×¢Òâ²ù¶·²»ÊÇ¾«È·µ½Ä¿±êÎ»ÖÃ!ÒªÏë¾«È·£¬Ê×ÏÈÌá¸ß¼ÓËÙ¶ÈÔ¼ÊøµÄ´óÐ¡');
-                    end
-                else
-                    disp('ÒªÍê³ÉµÄÖ±ÏßÊÇ´¹Ö±ÓÚµØÃæµÄ')
-                end
+                disp('ÒªÍê³ÉµÄÖ±ÏßÊÇ´¹Ö±ÓÚµØÃæµÄ')
             end
-            if vtheta3 < 0
-                vtheta3 = vtheta3 + acurrenttheta3*tinterval;
-            else
-                vtheta3 = vtheta3 - acurrenttheta3*tinterval;
-            end
-            d_k3 = vtheta3*pi/180;
-            if x0~=x1
-                d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))*d_k3/(- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1);
-
-            else
-                if y0~=y1
-                    d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))*d_k3/(- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1);
-                else
-                    disp('ÒªÍê³ÉµÄÖ±ÏßÊÇ´¹Ö±ÓÚµØÃæµÄ')
-                end
-            end
-%             d_k2 = -(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)); %ÕâÊÇÍ¨¹ýÇóÑÅ¿É±È¾ØÕóµÃµ½µÄ¶ÔÓ¦¹ØÏµ
-            vtheta2 = d_k2*180/pi;
-            theta2 = theta2 + vtheta2*tinterval;
-            theta3 = theta3 + vtheta3*tinterval;
-            theta2 = legalizAnger(theta2);
-            theta3 = legalizAnger(theta3);
-            
-            num = num+1;
-            PointsSequence(1,num) = tcurrent;
-            PointsSequence(2,num) = theta1;
-            PointsSequence(3,num) = theta2;
-            PointsSequence(4,num) = theta3;
-            tcurrent = tcurrent + tinterval;
         end
+        if vtheta3 < 0
+            vtheta3 = vtheta3 + acurrenttheta3*tinterval;
+        else
+            vtheta3 = vtheta3 - acurrenttheta3*tinterval;
+        end
+        d_k3 = vtheta3*pi/180;
+        if x0~=x1
+            d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*cos(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)))*d_k3/(- (cos(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(x0 - x1)) - 1);
+
+        else
+            if y0~=y1
+                d_k2 = -(- (2109*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)) - (2109*sin(k2 + k3)*sin(k1)*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)))*d_k3/(- (sin(k1)*(2109*sin(k2 + k3) + 4600*sin(k2))*(z0 - z1))/((2109*cos(k2 + k3) + 4600*cos(k2))*(y0 - y1)) - 1);
+            else
+                disp('ÒªÍê³ÉµÄÖ±ÏßÊÇ´¹Ö±ÓÚµØÃæµÄ')
+            end
+        end
+%             d_k2 = -(2109*d_k3*cos(k2 + k3))/(2109*cos(k2 + k3) + 4600*cos(k2)); %ÕâÊÇÍ¨¹ýÇóÑÅ¿É±È¾ØÕóµÃµ½µÄ¶ÔÓ¦¹ØÏµ
+        vtheta2 = d_k2*180/pi;
+        theta2 = theta2 + vtheta2*tinterval;
+        theta3 = theta3 + vtheta3*tinterval;
+        theta2 = legalizAnger(theta2);
+        theta3 = legalizAnger(theta3);
+
+        num = num+1;
+        PointsSequence(1,num) = tcurrent;
+        PointsSequence(2,num) = theta1;
+        PointsSequence(3,num) = theta2;
+        PointsSequence(4,num) = theta3;
+        tcurrent = tcurrent + tinterval;
+
+%         [pos1,pos2] = ForwardKinematics([theta1 theta2 theta3 0]);
+%         CurrentPoint = pos1(1:3,4);
+%         CurrentPoint = CurrentPoint';
+%         norm(CurrentPoint-EndPoint)
     end
+  
     [pos1,pos2] = ForwardKinematics([PointsSequence(2,end) PointsSequence(3,end) PointsSequence(4,end) 0]);
     CurrentPoint = pos1(1:3,4);
     CurrentPoint = CurrentPoint';
@@ -534,10 +681,22 @@ figure
         tf = k_tf*tf;
         [theta4sequence,success] = ManipulatorPlanningJointSpace(theta4begin,theta4end,tf,amaxtheta4,Vmaxtheta4,tinterval);
     end
-    enddistance = norm(CurrentPoint-EndPoint) %ÕâÊÇÎó²î£¬¾­¹ýÉÙÁ¿²âÊÔ£¬Îó²î²»»á³¬¹ý2cm
+%     enddistance = norm(CurrentPoint-EndPoint); %ÕâÊÇÎó²î£¬¾­¹ýÉÙÁ¿²âÊÔ£¬Îó²î²»»á³¬¹ý2cm
+    endPosition = CurrentPoint;
 end
 
-function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(CurrentJointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3)%Êä³öÂú×ã¼ÓËÙ¶ÈÏÞÖÆµÄµ±Ç°Ê±¿ÌËÙ¶ÈÖµ
+function valueout = Limit2range(value,range)
+    valueout = value;
+    if value<range(1)
+        valueout = range(1);
+    else
+        if value>range(2)
+            valueout = range(2);
+        end
+    end
+end
+
+function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(k_xishu,CurrentJointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3)%Êä³öÂú×ã¼ÓËÙ¶ÈÏÞÖÆµÄµ±Ç°Ê±¿ÌËÙ¶ÈÖµ
     amaxtheta2 = amaxtheta2*pi/180;
     amaxtheta3 = amaxtheta3*pi/180;
     fuhao = 1;
@@ -702,13 +861,14 @@ function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(CurrentJointAngle,Start
 %         vtheta3 = vtheta3reliablerange(1);
 %         vtheta2 = vtheta2reliablerange(1);
 %     end
-    
+
+%     k_xishu = 0.9; %k_xishuÈ¡Öµ·¶Î§Îª[0,1] k_xishuÔ½´ó£¬Æ½¾ùËÙ¶ÈÔ½´ó
     if abs(vtheta3reliablerange(end))>=abs(vtheta3reliablerange(1))
-        vtheta3 = vtheta3reliablerange(1) + (vtheta3reliablerange(end)-vtheta3reliablerange(1))*(0.9);
-        vtheta2 = vtheta2reliablerange(1) + (vtheta2reliablerange(end)-vtheta2reliablerange(1))*(0.9);
+        vtheta3 = vtheta3reliablerange(1) + (vtheta3reliablerange(end)-vtheta3reliablerange(1))*(k_xishu);
+        vtheta2 = vtheta2reliablerange(1) + (vtheta2reliablerange(end)-vtheta2reliablerange(1))*(k_xishu);
     else
-        vtheta3 = vtheta3reliablerange(1) + (vtheta3reliablerange(end)-vtheta3reliablerange(1))*(0.1);
-        vtheta2 = vtheta2reliablerange(1) + (vtheta2reliablerange(end)-vtheta2reliablerange(1))*(0.1);
+        vtheta3 = vtheta3reliablerange(1) + (vtheta3reliablerange(end)-vtheta3reliablerange(1))*(1-k_xishu);
+        vtheta2 = vtheta2reliablerange(1) + (vtheta2reliablerange(end)-vtheta2reliablerange(1))*(1-k_xishu);
     end
 %     if flagYESsolution == 0
 %         error('ÐèÒªÖØÐÂÐÞ¸ÄÏà¹Ø²ÎÊý£¬Õâ×é²ÎÊýÎÞ·¨Âú×ã¼ÓËÙ¶ÈÔ¼Êø');
@@ -1061,11 +1221,11 @@ end
 
 function thetaout = legalizAnger(theta) %°Ñ½Ç¶ÈÏÞÖÆÔÚ(-180,180]
     thetaout = theta;
-    while theta>180 
-        thetaout = theta-360;
+    while thetaout>180 
+        thetaout = thetaout-360;
     end
-    while theta<=-180
-        thetaout = theta+360;
+    while thetaout<=-180
+        thetaout = thetaout+360;
     end
 end
 
@@ -1837,7 +1997,7 @@ function YESDirectReachable = IsDirectReachable(P0,P1) %YESDirectReachable = 0 Ê
             result2
             result3
             plot([equationSet_trange(i,1):interval:equationSet_trange(i,2)],subs(equationSet(i),[equationSet_trange(i,1):interval:equationSet_trange(i,2)]),'-');
-            disp('s');
+            error('s');
              result3 = SolveEquaMuller(equationSet(i),equationSet_trange(i,:));
         end
         if isempty(result2)==0 && result3 == 0
@@ -1847,7 +2007,7 @@ function YESDirectReachable = IsDirectReachable(P0,P1) %YESDirectReachable = 0 Ê
             result2
             result3
             plot([equationSet_trange(i,1):interval:equationSet_trange(i,2)],subs(equationSet(i),[equationSet_trange(i,1):interval:equationSet_trange(i,2)]),'-');
-            disp('s');
+            error('s');
         end
         if size(result2,1)==3
             figure(7)
