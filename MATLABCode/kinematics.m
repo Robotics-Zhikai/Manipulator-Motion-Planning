@@ -40,8 +40,12 @@ A4=[cos(k4) -sin(k4) 0 a3;sin(k4)*cos(m3) cos(k4)*cos(m3) -sin(m3) -sin(m3)*d4;s
 R43 = A4(1:3,1:3);
 P43 = A4(1:3,4);
 A5=[1 0 0 tool;0 1 0 0;0 0 1 0;0 0 0 1];
+
+T20 = simplify(A1*A2)
+T30 = simplify(A1*A2*A3)
 T40 = simplify(A1*A2*A3*A4)
 T50 = simplify(A1*A2*A3*A4*A5)
+
 T50(1:3,4)-T40(1:3,4) %这个向量的值就是铲斗刚体的方向向量 使得z等于0即可使铲斗始终平行于地面
 T40(1,4)
 T40(2,4)

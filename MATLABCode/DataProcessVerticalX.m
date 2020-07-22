@@ -279,7 +279,10 @@ end
 
 
 
-
+%%
+clc
+clear 
+close all
 % BeginPoint=[-85.1083  305.1562 -234.3325];
 % EndPoint = [-505.7061  -19.8488  209.6305];
 BeginPoint = RandGenratePointInWorkSpace(1);
@@ -289,8 +292,13 @@ EndPoint = RandGenratePointInWorkSpace(1);
 jointAngleBegin = InverseKinematicsPos2Angle(BeginPoint');
 jointAngleEnd = InverseKinematicsPos2Angle(EndPoint');
 for i=1:size(jointAngleBegin,2)
-    PointsAngleSequence{i} = ManipulatorPlanningJointSpace(jointAngleBegin(i),jointAngleEnd(i),10,500,30,0.1);
+%      jointAngleBegin(i)=-73.9826;
+%      jointAngleEnd(i) = -46.9904;
+%     PointsAngleSequence{i} = ManipulatorPlanningJointSpace(jointAngleBegin(i),jointAngleEnd(i),10,500,30,0.1);
+    PointsAngleSequence{i} = ManipulatorPlanningJointSpaceMethod2test(jointAngleBegin(i),jointAngleEnd(i),10,500,30,0.1);
+%     PointsAngleSequence{i}-PointsAngleSequence1{i}
 end
+
 Combination = CombineAngleSequences(PointsAngleSequence);
 recordEmptyi = [];
 flagrecord = 1;
@@ -361,17 +369,16 @@ for i=1:size(recordEmptyi,2)/2
     end
 end
 
-% PointsSequence = [];
-% hold on;
-% for i = 1:size(Combination,2)
-%     [position1,position2] = ForwardKinematics(Combination(2:5,i));
-%     plot3(position1(1,4),position1(2,4),position1(3,4),'o');
-%     plot3([position1(1,4),position2(1,4)],[position1(2,4),position2(2,4)],[position1(3,4),position2(3,4)],'-');
-%     pause(0.1)
-% end
-% 
-% 
-% plot(PointsSequence(1,:),PointsSequence(2,:),'.');
+figure
+hold on;
+for i = 1:size(Combination,2)
+    [position1,position2] = ForwardKinematics(Combination(2:5,i));
+    plot3(position1(1,4),position1(2,4),position1(3,4),'o');
+    plot3([position1(1,4),position2(1,4)],[position1(2,4),position2(2,4)],[position1(3,4),position2(3,4)],'-');
+    pause(0.1)
+end
+
+
 
 position=[-7.9299606329480514e-07 -1.7005665642058626e-06 0.99999999999823963 13.700648789105546;0.34201612592369207 -0.93969408298998514 -1.3267948966763650e-06 156.68473668902345;0.93969408299058710 0.34201612592203784 1.3267948966775328e-06 -274.40499567516673;0 0 0 1];
 jointAngle = InverseKinematics(position)
@@ -1621,6 +1628,9 @@ end
 
 function [PointsSequence,success] = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VMAX,SampleTime) %默认初始末点速度为0，加速度为0;
 %-180,180 角度体系
+    theta0 = legalizAnger(theta0);
+    thetaf = legalizAnger(thetaf);
+    
     success = 0;
     flagNeedXG = 0;
     if theta0*thetaf<0
@@ -1643,6 +1653,7 @@ function [PointsSequence,success] = ManipulatorPlanningJointSpace(theta0,thetaf,
             PointsSequence(1,i) = (i-1)*SampleTime;
             PointsSequence(2,i) = theta0;
         end
+        success = 1;
         return;
     end
     if (theta0<thetaf)
@@ -1665,7 +1676,8 @@ function [PointsSequence,success] = ManipulatorPlanningJointSpace(theta0,thetaf,
             end
             a_UpperBound = a_Uppertemp;
         end
-        amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+%         amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+        amax = a_UpperBound;
         tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k));
         ta = k*tb;
         for i=1:tf/SampleTime+1
@@ -1723,7 +1735,8 @@ function [PointsSequence,success] = ManipulatorPlanningJointSpace(theta0,thetaf,
             end
             a_UpperBound = a_Uppertemp;
         end
-        amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+%         amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+        amax = a_UpperBound;
         tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k));
         ta = k*tb;
         for i=1:tf/SampleTime+1
@@ -1762,10 +1775,216 @@ function [PointsSequence,success] = ManipulatorPlanningJointSpace(theta0,thetaf,
     end
     if flagNeedXG==1
         for i =1:size(PointsSequence,2)
-            if PointsSequence(2,i)>180
-                PointsSequence(2,i) = -180 + (PointsSequence(2,i)-180);
+            PointsSequence(2,i) = legalizAnger(PointsSequence(2,i));
+%             if PointsSequence(2,i)>180
+%                 PointsSequence(2,i) = -180 + (PointsSequence(2,i)-180);
+%             end
+        end
+    end
+    success = 1;
+end
+
+function [PointsSequence,success] = ManipulatorPlanningJointSpaceMethod2test(theta0,thetaf,tf,AMAX,VMAX,SampleTime) %这是转C++的代码测试
+    PointsSequence = [];
+    for i=1:tf/SampleTime+1
+        t = (i-1)*SampleTime;
+        [PointCurrentTime,success] = ManipulatorPlanningJointSpaceSub(theta0,thetaf,tf,AMAX,VMAX,t,0.1,1);
+        if success == 1
+            PointsSequence = [PointsSequence [t;PointCurrentTime]];
+        else
+            PointsSequence = [];
+            return;
+        end
+    end
+end
+
+function Angle = GetAngleOfBucketWithGround(theta1,theta2,theta3,theta4) %得到在四个角的情况下铲斗与地面的夹角 theta4属于[-100,30]
+%这个函数还没有测试
+%最终Angle应该是-180 180 的子集
+    k1 = theta1*pi/180;
+    k2 = theta2*pi/180;
+%     k3 = theta3*pi/180;
+%     k4 = theta4*pi/180;
+    
+    [position1,position2] = ForwardKinematics([theta1,theta2,theta3,theta4]);
+    
+    P3minusP2 = [230*cos(k1 + k2) + 230*cos(k1 - k2) ,230*sin(k1 - k2) + 230*sin(k1 + k2), 460*sin(k2)];%这是根据转换矩阵计算出来的 T30-T20
+    XPositive = [P3minusP2(1:2) 0]; %以这个向量为x的正方向 当铲斗与其呈180度附近时，土不会掉下来
+    XPositive = XPositive/norm(XPositive);
+    
+    BucketVector = position2(1:3,4)-position1(1:3,4);
+    BucketVector = BucketVector/norm(BucketVector);
+    %对于 X 在区间 [-1, 1] 内的实数值，acos(X) 返回区间 [0, π] 内的值。
+    abstheta4 = acos(dot(BucketVector,XPositive));
+    if BucketVector<0
+        Angle = -abstheta4;
+    else
+        Angle = abstheta4;
+    end
+    Angle = Angle*180/pi;
+end
+
+function [PointCurrentTime,success] = ManipulatorPlanningJointSpaceSub(theta0,thetaf,tf,AMAX,VMAX,t,k,k_amax) %t必须在[0,tf]区间内 k=ta/tb,取值范围为[0,0.5] k_amax取值范围为[0,1]
+%-180,180 角度体系
+    theta0 = legalizAnger(theta0);
+    thetaf = legalizAnger(thetaf);
+    
+    success = 0;
+    PointCurrentTime = theta0;
+    if t<0
+%         disp("t不能小于0！");
+        return;
+    end
+    if t>tf
+%         disp('t不能大于tf！');
+        return;
+    end
+    
+    flagNeedXG = 0;
+    if theta0*thetaf<0
+        if theta0>0
+            if theta0-thetaf>180
+                thetaf = 180+180+thetaf;
+                flagNeedXG = 1;
+            end
+        else
+            if thetaf-theta0>180
+                theta0 = 180+180+theta0;
+                flagNeedXG = 1;
             end
         end
+    end
+   
+%     k = 0.1; %k=ta/tb,取值范围为[0,0.5]
+    if theta0 == thetaf
+        PointCurrentTime = theta0;
+        success = 1;
+        return;
+    end
+    if (theta0<thetaf)
+        a_LowerBound = 4*(theta0-thetaf)/( (k-1)*tf^2 );
+        a_Uppertemp = VMAX^2 / ( (1-k)*(theta0-thetaf+tf*VMAX) );
+        if a_Uppertemp<a_LowerBound
+%             disp('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+            return;
+        end
+        if a_Uppertemp>=AMAX
+            if AMAX<a_LowerBound
+%                 disp('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
+                return;
+            end
+            a_UpperBound = AMAX;
+        else
+            if a_Uppertemp<a_LowerBound
+%                 disp('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+                return;
+            end
+            a_UpperBound = a_Uppertemp;
+        end
+%         amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+        amax = a_LowerBound + k_amax * (a_UpperBound-a_LowerBound);
+%         amax = a_UpperBound;
+        tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k));
+        ta = k*tb;
+        
+%             PointsSequence(1,i) = (i-1)*SampleTime;
+%             t = PointsSequence(1,i);
+        if t>=0&&t<ta
+            PointCurrentTime = (amax*t^3)/(6*k*tb) + theta0;
+
+        end
+        if t>=ta && t<tb-ta
+            PointCurrentTime = theta0 + (amax*t*(t - k*tb))/2 + (amax*k^2*tb^2)/6;
+
+        end
+        if t>=tb-ta && t<tb
+            PointCurrentTime = theta0 + (amax*t^2)/(2*k) + (amax*k^2*tb^2)/6 + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*t*k^2 - 6*t*k + 3*t))/(6*k) - (amax*t^3)/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tb && t<tf-tb
+            PointCurrentTime = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 + amax*(tb - k*tb)*(t - tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tf-tb && t<tf-tb+ta
+            PointCurrentTime = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k) - (amax*(t + tb - tf)*(6*k^2*tb^2 - 6*k*tb^2 + t^2 + 2*t*tb - 2*t*tf + tb^2 - 2*tb*tf + tf^2))/(6*k*tb);
+
+        end
+        if t>=tf-tb+ta && t<tf-ta
+            PointCurrentTime = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - (amax*(t + tb - tf - k*tb)*(t - tb - tf + 2*k*tb))/2 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tf-ta && t<=tf
+            PointCurrentTime = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/3 - amax*(2*tb - tf)*(tb - k*tb) + amax*(tb - k*tb)*(tb - 2*k*tb) - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) + (amax*(t^3 - 3*t^2*tf + 3*t*tf^2 - tf^3))/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        
+    else
+        thetatemp = thetaf;
+        thetaf = theta0;
+        theta0 = thetatemp;
+        a_LowerBound = 4*(theta0-thetaf)/( (k-1)*tf^2 );
+        a_Uppertemp = VMAX^2 / ( (1-k)*(theta0-thetaf+tf*VMAX) );
+        if a_Uppertemp<a_LowerBound
+%             disp('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+            return;
+        end
+        if a_Uppertemp>=AMAX
+            if AMAX<a_LowerBound
+%                 disp('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
+                return;
+            end
+            a_UpperBound = AMAX;
+        else
+            if a_Uppertemp<a_LowerBound
+%                 disp('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+                return;
+            end
+            a_UpperBound = a_Uppertemp;
+        end
+%         amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+%         amax = a_UpperBound;
+        amax = a_LowerBound + k_amax * (a_UpperBound-a_LowerBound);
+        tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k));
+        ta = k*tb;
+%         for i=1:tf/SampleTime+1
+%             PointsSequence(1,i) = (i-1)*SampleTime;
+%             t = PointsSequence(1,i);
+        t = 2*(tf/2)-t;
+        if t>=0&&t<ta
+            PointCurrentTime = (amax*t^3)/(6*k*tb) + theta0;
+
+        end
+        if t>=ta && t<tb-ta
+            PointCurrentTime = theta0 + (amax*t*(t - k*tb))/2 + (amax*k^2*tb^2)/6;
+
+        end
+        if t>=tb-ta && t<tb
+            PointCurrentTime = theta0 + (amax*t^2)/(2*k) + (amax*k^2*tb^2)/6 + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*t*k^2 - 6*t*k + 3*t))/(6*k) - (amax*t^3)/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tb && t<tf-tb
+            PointCurrentTime = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 + amax*(tb - k*tb)*(t - tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tf-tb && t<tf-tb+ta
+            PointCurrentTime = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k) - (amax*(t + tb - tf)*(6*k^2*tb^2 - 6*k*tb^2 + t^2 + 2*t*tb - 2*t*tf + tb^2 - 2*tb*tf + tf^2))/(6*k*tb);
+
+        end
+        if t>=tf-tb+ta && t<tf-ta
+            PointCurrentTime = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - (amax*(t + tb - tf - k*tb)*(t - tb - tf + 2*k*tb))/2 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tf-ta && t<=tf
+            PointCurrentTime = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/3 - amax*(2*tb - tf)*(tb - k*tb) + amax*(tb - k*tb)*(tb - 2*k*tb) - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) + (amax*(t^3 - 3*t^2*tf + 3*t*tf^2 - tf^3))/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+%         end
+    end
+    if flagNeedXG==1
+        PointCurrentTime = legalizAnger(PointCurrentTime);
+%         if PointCurrentTime>180
+%             PointCurrentTime = -180 + (PointCurrentTime-180);
+%         end
     end
     success = 1;
 end
