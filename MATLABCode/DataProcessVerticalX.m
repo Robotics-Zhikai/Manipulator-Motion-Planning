@@ -2,6 +2,56 @@ clc
 clear 
 close all
 
+% syms k1 k2 k3 k4
+
+% ZERO = 10^-6;
+% M_PI = pi;
+% M_PI_2 = pi/2;
+% 
+% m(1) = 0.0*M_PI / 180.0;
+% m(2) = 90.0*M_PI / 180.0;
+% m(3) = 0.0*M_PI / 180.0;
+% m(4) = 0.0*M_PI / 180.0;
+% 
+% a(1) = 0.0;
+% a(2) = 12.0;
+% a(3) = 460.0;
+% a(4) = 210.9;
+% 
+% d(1) = 57.9;
+% d(2) = 13.7;%//13.7
+% d(3) = 0.0;
+% d(4) = 0.0;
+% tool = 123.5;
+% 
+% % theta(1) = jointangle(1) * M_PI / 180.0;
+% % theta(2) = jointangle(2) * M_PI / 180.0;
+% % theta(3) = jointangle(3) * M_PI / 180.0;
+% % theta(4) = jointangle(4) * M_PI / 180.0;
+% 
+% theta(1) = k1;
+% theta(2) = k2;
+% theta(3) = k3;
+% theta(4) = k4;
+% 
+% m_matrix1 = MatrixT(m(1), a(1), theta(1), d(1));
+% m_matrix2 = MatrixT(m(2), a(2), theta(2), d(2));
+% m_matrix3 = MatrixT(m(3), a(3), theta(3), d(3));
+% m_matrix4 = MatrixT(m(4), a(4), theta(4), d(4));
+% m_matrix5 = MatrixTool(tool);
+% 
+% m_matrixtemp1 = m_matrix1*m_matrix2;
+% m_matrixtemp2 = m_matrixtemp1*m_matrix3;
+% m_matrixtemp3 = m_matrixtemp2*m_matrix4;
+% m_matrixtemp4 = m_matrixtemp3*m_matrix5;
+% 
+% position1 = m_matrixtemp3;%//铲斗旋转中心坐标
+% position2 = m_matrixtemp4;%//末端铲齿坐标
+% position2(1:3,4)-position1(1:3,4)
+
+
+ 
+ 
 % load('垂直于x与x交于13.7.txt');
 load('垂直于x与x交于13.7更精细的.txt');
 % Data = X___x_x__13_7(:,2:3);
@@ -230,8 +280,10 @@ PointA = [-576.2108 -114.8458  321.1456];
 PointB = [-514.5045 -101.0436   59.8012];
 % [PointA,PointB] = RandGenratePointLineParallelground();
 
+PointA = [-32.1682 -588.1967  218.8374];
+PointB = [-30.6171 -538.7770  260.6377];
 
-[PointA,PointB] = RandGenratePointDirectLine();
+% [PointA,PointB] = RandGenratePointDirectLine();
 hold on
 plot3([PointA(1) PointB(1)],[PointA(2) PointB(2)],[PointA(3) PointB(3)],'o');
 % PointsSequence = LinearDigPlanningParallel2ground(PointA,PointB,-100,30,30,30,30,5,15,15);
@@ -280,17 +332,24 @@ end
 
 
 %%
-clc
-clear 
-close all
+% clc
+% clear 
+% close all
 % BeginPoint=[-85.1083  305.1562 -234.3325];
 % EndPoint = [-505.7061  -19.8488  209.6305];
+
 BeginPoint = RandGenratePointInWorkSpace(1);
 EndPoint = RandGenratePointInWorkSpace(1);
 
 % PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VMAX,SampleTime)
 jointAngleBegin = InverseKinematicsPos2Angle(BeginPoint');
 jointAngleEnd = InverseKinematicsPos2Angle(EndPoint');
+Theta4Range = groundAngleRangeTOtheta4Range(jointAngleEnd(1),44,-20,[0,-179.9]);
+resultPoints = RandGenerateStableBucketPoints(12000,[170,-170]);
+figure
+plot(resultPoints(:,2),resultPoints(:,3),'.');
+axis([100 700 -500 500])
+
 for i=1:size(jointAngleBegin,2)
 %      jointAngleBegin(i)=-73.9826;
 %      jointAngleEnd(i) = -46.9904;
@@ -451,8 +510,9 @@ function[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint
         [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDigPlanningRandomLinesub(kp,ki,kd,StartPoint,EndPointtmp,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4);
         
         if DirectReachable==0
+            EndPointtmp = StartPoint + (1-0.1) * (EndPoint-StartPoint);
             while IsDirectReachable(StartPoint,EndPointtmp)==0
-                EndPointtmp = StartPoint + (1-0.005) * (EndPointtmp-StartPoint);
+                EndPointtmp = StartPoint + (1-0.1) * (EndPointtmp-StartPoint);
             end
             endPosition = endPositionStorage;
             continue;
@@ -1816,12 +1876,182 @@ function Angle = GetAngleOfBucketWithGround(theta1,theta2,theta3,theta4) %得到在
     BucketVector = BucketVector/norm(BucketVector);
     %对于 X 在区间 [-1, 1] 内的实数值，acos(X) 返回区间 [0, π] 内的值。
     abstheta4 = acos(dot(BucketVector,XPositive));
-    if BucketVector<0
+    if BucketVector(3)<0
         Angle = -abstheta4;
     else
         Angle = abstheta4;
     end
     Angle = Angle*180/pi;
+end
+
+function BucketwithGroundRange = GetBucketwithGroundRange(theta1,theta2,theta3) 
+%得到theta4满足[-100,30]的前提下与地面的夹角范围
+
+%     k1 = theta1*pi/180;
+%     k2 = theta2*pi/180;
+%     k3 = theta3*pi/180;
+%     BucketVector = [- (247*cos(k4)*(cos(k3)*( - cos(k1)*cos(k2)) + sin(k3)*(cos(k1)*sin(k2) )))/2 - (247*sin(k4)*(cos(k3)*(cos(k1)*sin(k2) ) - sin(k3)*( - cos(k1)*cos(k2))))/2;
+%    (247*cos(k4)*(cos(k3)*(  cos(k2)*sin(k1)) - sin(k3)*(sin(k1)*sin(k2) )))/2 - (247*sin(k4)*(cos(k3)*(sin(k1)*sin(k2) ) + sin(k3)*(  cos(k2)*sin(k1))))/2;
+%     (247*cos(k4)*(cos(k2)*sin(k3) + cos(k3)*sin(k2)))/2 - (247*sin(k4)*(sin(k2)*sin(k3) - cos(k2)*cos(k3)))/2];
+%     BucketVector = BucketVector/norm(BucketVector);
+%     
+%     P3minusP2 = [230*cos(k1 + k2) + 230*cos(k1 - k2) ,230*sin(k1 - k2) + 230*sin(k1 + k2), 460*sin(k2)];%这是根据转换矩阵计算出来的 T30-T20
+%     XPositive = [P3minusP2(1:2) 0]; %以这个向量为x的正方向 当铲斗与其呈180度附近时，土不会掉下来
+%     XPositive = XPositive/norm(XPositive);
+%     figure;
+%     StableRange = [-145 -179.99];
+    
+    angletheta4withground = [GetAngleOfBucketWithGround(theta1,theta2,theta3,-100),GetAngleOfBucketWithGround(theta1,theta2,theta3,30)];
+    BucketwithGroundRange = angletheta4withground;
+%     if abs(angletheta4withground(1)-angletheta4withground(2))>180
+%         BucketwithGroundRange = [angletheta4withground(1) 360+angletheta4withground(2)];
+%         %当-100,30 中经过计算有经过180时，会造成角度突变，此时将其角度范围弄到0-360，以保证连续
+%     end
+end
+
+function [Theta4Range,YES] = groundAngleRangeTOtheta4Range(theta1,theta2,theta3,WithGroundAngleRange) %WithGroundAngleRange，左为下限，右为上限，逆时针为正，超出180即跳变为负 
+    %YES 为1 时表明在theta4满足-100,30的条件下能找出一范围来，满足WithGroundAngleRange
+    %WithGroundAngleRange的角度体系也是-180 180
+    Theta4Range = [];
+    BucketwithGroundRange = GetBucketwithGroundRange(theta1,theta2,theta3);
+    SetBucketwithGroundRange = [];
+    if BucketwithGroundRange(2) > BucketwithGroundRange(1)
+        SetBucketwithGroundRange{1,1} = BucketwithGroundRange;
+    else
+        if BucketwithGroundRange(2) < BucketwithGroundRange(1)
+            theta4mid = -100 + 180-BucketwithGroundRange(1); %这跟130有关系
+            SetBucketwithGroundRange{1,1} = [BucketwithGroundRange(1) 180];
+            SetBucketwithGroundRange{2,1} = [-100 theta4mid];
+            SetBucketwithGroundRange{1,2} = [-179.99999 BucketwithGroundRange(2)];
+            SetBucketwithGroundRange{2,2} = [theta4mid 30];
+        end
+    end
+    
+    SetWithGroundAngleRange = [];
+    if WithGroundAngleRange(2) >= WithGroundAngleRange(1)
+        SetWithGroundAngleRange{1,1} = WithGroundAngleRange;
+    else
+        if WithGroundAngleRange(2) < WithGroundAngleRange(1)
+            SetWithGroundAngleRange{1,1} = [WithGroundAngleRange(1) 180];
+            SetWithGroundAngleRange{1,2} = [-179.99999 WithGroundAngleRange(2)];
+        end
+    end
+    
+    intersectionSet = [];
+    for i =1:size(SetBucketwithGroundRange,2)
+        for j = 1:size(SetWithGroundAngleRange,2)
+            intersecttmp = GetIntersection(SetBucketwithGroundRange{1,i},SetWithGroundAngleRange{1,j});
+            if isempty(intersecttmp) == 0
+                intersectionSet = [intersectionSet {intersecttmp}];
+            end
+        end
+    end
+    
+    if BucketwithGroundRange(2)>BucketwithGroundRange(1)
+        for i = 1:size(intersectionSet,2)
+            tmp = intersectionSet{1,i};
+%             -100 BucketwithGroundRange(1)
+%             30 BucketwithGroundRange(2)
+            if size(tmp,2)==2
+                Theta4Range =[Theta4Range {[30 - (BucketwithGroundRange(2)-tmp(1)), 30 - (BucketwithGroundRange(2)-tmp(2))]}];
+            else
+                if size(tmp,2)==1
+                    Theta4Range =[Theta4Range {30 - (BucketwithGroundRange(2)-tmp(1))}];
+                else
+                    erro('逻辑出错');
+                end
+            end
+        end 
+    else
+        if BucketwithGroundRange(2)<BucketwithGroundRange(1)
+            for i=1:size(SetBucketwithGroundRange,2)
+                for j = 1:size(intersectionSet,2)
+                    if isempty(GetIntersection(intersectionSet{1,j},SetBucketwithGroundRange{1,i}))==0
+                        if size(intersectionSet{1,j},2)==1
+                            Theta4Range = [Theta4Range {SetBucketwithGroundRange{2,i}(1)+intersectionSet{1,j}(1)-SetBucketwithGroundRange{1,i}(1)}];
+                        else
+                            Theta4Range = [Theta4Range {[SetBucketwithGroundRange{2,i}(1)+intersectionSet{1,j}(1)-SetBucketwithGroundRange{1,i}(1) , ...
+                            SetBucketwithGroundRange{2,i}(1)+intersectionSet{1,j}(2)-SetBucketwithGroundRange{1,i}(1)]}];
+                        end
+                    end
+                end
+            end
+%             Mode = 2;
+        end
+    end
+    
+    if isempty(Theta4Range)==1
+        YES = 0;
+    else
+        if size(Theta4Range,2)==1
+            Theta4Range = Theta4Range{1};
+            if CheckInrange(Theta4Range,[-100,30])==0
+                error('程序逻辑出错');
+            end
+        else
+            if size(Theta4Range,2)==2
+                if abs(Theta4Range{1}(2)-Theta4Range{2}(1))>0.001
+                    if CheckInrange(Theta4Range{1},[-100,30])==0
+                        error('程序逻辑出错');
+                    end
+                    if CheckInrange(Theta4Range{2},[-100,30])==0
+                        error('程序逻辑出错');
+                    end
+                else
+                    Theta4Range = [Theta4Range{1}(1) Theta4Range{2}(2)];
+                    if CheckInrange(Theta4Range,[-100,30])==0
+                        error('程序逻辑出错');
+                    end
+                end
+            else
+                error('程序逻辑出错！');
+            end
+        end
+        YES = 1;
+    end
+    if isempty(Theta4Range)==1 && YES == 1
+        error('程序逻辑出错');
+    end
+end
+
+function resultPoints = RandGenerateStableBucketPoints(num,BucketStableRange) %在与机械臂共面的笛卡尔坐标系中随机生成num个点，这num个点存在theta4使得铲斗中内容物不漏，内容物不漏的前提是铲斗与地面的夹角属于BucketStableRange
+    count = 0;
+    resultPoints = [];
+    while count<num
+        Points = RandGeneratePointsCoplanarWithManipulator(0,1);
+        jointAngle = InverseKinematicsPos2Angle(Points);
+%         jointAngle
+        [~,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),BucketStableRange);
+        if YES == 1
+            resultPoints = [resultPoints;Points];
+            count = count+1;
+        end
+    end
+end
+
+function YES = CheckInrange(qujian,range) %必须得满足qujian(2)>=qujian(1) range(2)>=range(1)
+    if size(range,2)<=1
+        error('range不能为空区间或者单个数');
+        YES = 0;
+        return;
+    end
+    if size(qujian,2)==1
+        if qujian>=range(1) && qujian <=range(2)
+            YES = 1;
+        else
+            YES = 0;
+        end
+    else
+        if qujian(2)<qujian(1) || range(2)<range(1)
+            YES = 0;
+        else
+            if qujian(1)>=range(1)-0.001 && qujian(2)<=range(2)+0.001 
+                YES = 1;
+            else
+                YES = 0;
+            end
+        end
+    end
 end
 
 function [PointCurrentTime,success] = ManipulatorPlanningJointSpaceSub(theta0,thetaf,tf,AMAX,VMAX,t,k,k_amax) %t必须在[0,tf]区间内 k=ta/tb,取值范围为[0,0.5] k_amax取值范围为[0,1]
@@ -2574,6 +2804,40 @@ function [PointA,PointB] = RandGenratePointDirectLine()%生成两个点，这两个点在一
     end
     PointA = PointsSet(1,:);
     PointB = PointsSet(2,:);
+end
+
+function PointsSet = RandGeneratePointsCoplanarWithManipulator(theta1,num)%生成num个与机械臂共面的点 基座的theta1为一给定值 但这里给定的theta1 不一定与实际的对应，只是取值范围是相同的，可能会有位移
+    global yudu;
+    if num == 0
+        PointSet = [];
+        return ;
+    end
+    r = RandGenerateNumber(-441.0118,459.8,num);
+    PointsSet = [];
+    for i = 1:size(r,1)
+        z = r(i);
+        if z<=459.8 && z>=165.25
+            up = -0.0009554*z^2+0.1704*z+662.7 - yudu;
+            down = (-0.3377*z^2+810.5*z-90990)/(z-74.85) + yudu;
+            
+        end
+        if z<165.25 && z>=-274.405
+            up = -0.000818*z^2+0.0902*z+671.8 - yudu;
+            down = 2.897*10^-6*z^3-0.001479*z^2+0.1196*z+370 + yudu;
+            
+        end
+        if z<-274.405 && z>=-441.0118
+            up = 2.453*10^-5*z^3+0.02358*z^2+8.212*z+1572 - yudu;
+            down = -3.011*10^-5*z^3-0.02679*z^2-8.276*z-721.3 + yudu;
+            
+        end
+%         up = down      ;
+%         down = up;
+%         theta = RandGenerateNumber(0,2*pi,1);
+        theta = theta1;
+        y0 = RandGenerateNumber(down,up,1);
+        PointsSet = [PointsSet;[13.7 * cos(theta) - y0 * sin(theta) , 13.7 * sin(theta) + y0 * cos(theta) , z]];
+    end
 end
 
 function PointsSet = GenratePointInner(num)%生成分布在工作空间内壁的点
