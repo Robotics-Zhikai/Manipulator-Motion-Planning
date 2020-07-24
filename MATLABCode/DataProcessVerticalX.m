@@ -278,10 +278,15 @@ PointB = [641.1969 -172.7961   31.0126];
 
 PointA = [-576.2108 -114.8458  321.1456];
 PointB = [-514.5045 -101.0436   59.8012];
-% [PointA,PointB] = RandGenratePointLineParallelground();
 
 PointA = [-32.1682 -588.1967  218.8374];
 PointB = [-30.6171 -538.7770  260.6377];
+
+PointA =[-469.8574  301.6004  418.6958];
+ PointB =[-470.1941  301.8051  418.6958];
+% [PointA,PointB] = RandGenratePointLineParallelground();
+
+
 
 % [PointA,PointB] = RandGenratePointDirectLine();
 hold on
@@ -344,8 +349,8 @@ EndPoint = RandGenratePointInWorkSpace(1);
 % PointsSequence = ManipulatorPlanningJointSpace(theta0,thetaf,tf,AMAX,VMAX,SampleTime)
 jointAngleBegin = InverseKinematicsPos2Angle(BeginPoint');
 jointAngleEnd = InverseKinematicsPos2Angle(EndPoint');
-Theta4Range = groundAngleRangeTOtheta4Range(jointAngleEnd(1),44,-20,[0,-179.9]);
-resultPoints = RandGenerateStableBucketPoints(12000,[170,-170]);
+Theta4Range = groundAngleRangeTOtheta4Range(jointAngleEnd(1),44,-20,[0,-180]);
+resultPoints = RandGenerateStableBucketPoints(12000,[155,-155]);
 figure
 plot(resultPoints(:,2),resultPoints(:,3),'.');
 axis([100 700 -500 500])
@@ -481,6 +486,13 @@ plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
 function[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4)%解决任意可直达直线挖掘
 %为了解决加上pid控制后不能精确到达目标位置的问题
     begindistance = norm(StartPoint-EndPoint)
+    if begindistance<=1
+        jointAngle = InverseKinematicsPos2Angle(StartPoint);
+        PointsSequence = [0;jointAngle(1);jointAngle(2);jointAngle(3)];
+        theta4sequence = [0;theta4begin];
+        disp('输入的两点距离太近了，小于1厘米');
+        return;
+    end
     EndPointtmp = EndPoint;
     
     kp = 1.1;
@@ -503,18 +515,35 @@ function[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint
     
     kpScale = 0.001;
     kiScale = 0.00015;%这个得尽量小，否则一不小心就积大了
-            
+    
+    countDirectReachable0 = 0;
     while norm(EndPoint-endPosition)>1
+        PointsSequenceStorage = PointsSequence;
+        theta4sequenceStorage = theta4sequence;
         endPositionStorage = endPosition;
+        DirectReachableStorage = DirectReachable;
 %         [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDigPlanningRandomLinesub(1.1,0.002,0.65,StartPoint,EndPointtmp,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4);
         [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDigPlanningRandomLinesub(kp,ki,kd,StartPoint,EndPointtmp,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4);
         
         if DirectReachable==0
+            countDirectReachable0 = countDirectReachable0 + 1;
             EndPointtmp = StartPoint + (1-0.1) * (EndPoint-StartPoint);
             while IsDirectReachable(StartPoint,EndPointtmp)==0
                 EndPointtmp = StartPoint + (1-0.1) * (EndPointtmp-StartPoint);
             end
+%             kiScale = 0;
             endPosition = endPositionStorage;
+            
+            if countDirectReachable0 == 2
+                %说明有一点太靠近边界了，再这样下去也没啥用！
+                %PointA = [-32.1682 -588.1967  218.8374];
+                % PointB = [-30.6171 -538.7770  260.6377];
+                PointsSequence = PointsSequenceStorage;
+                theta4sequence = theta4sequenceStorage;
+                endPosition = endPositionStorage;
+                DirectReachable = DirectReachableStorage;
+                return;
+            end
             continue;
         else
             if dot(StartPoint-endPosition,EndPoint-endPosition)<0
@@ -600,6 +629,7 @@ function [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDig
     QueueSize = 15;
 %     flagSlowDown = 0;
 % figure
+    
     while norm(CurrentPoint-EndPoint)>1
         Queue = [Queue norm(CurrentPoint-EndPoint)];
         if size(Queue,2)==QueueSize+1
@@ -1912,6 +1942,8 @@ end
 function [Theta4Range,YES] = groundAngleRangeTOtheta4Range(theta1,theta2,theta3,WithGroundAngleRange) %WithGroundAngleRange，左为下限，右为上限，逆时针为正，超出180即跳变为负 
     %YES 为1 时表明在theta4满足-100,30的条件下能找出一范围来，满足WithGroundAngleRange
     %WithGroundAngleRange的角度体系也是-180 180
+    WithGroundAngleRange(1) = legalizAnger(WithGroundAngleRange(1));
+    WithGroundAngleRange(2) = legalizAnger(WithGroundAngleRange(2));
     Theta4Range = [];
     BucketwithGroundRange = GetBucketwithGroundRange(theta1,theta2,theta3);
     SetBucketwithGroundRange = [];
