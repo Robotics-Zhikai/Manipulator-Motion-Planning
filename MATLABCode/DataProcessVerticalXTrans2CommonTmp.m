@@ -484,10 +484,6 @@ plot3(PointsSequence(:,1),PointsSequence(:,2),PointsSequence(:,3),'-');
 %%
 %functions
 
-
-
-
-
 function v = GetVelocityInRange(Lower,Upper,k) %k=1时，走满足范围的最大的绝对值速度 k=0时，走0
     if Lower>Upper
         tmp =Upper;
@@ -1837,20 +1833,6 @@ function EdgeSet = EdgeExtraction(SortedData)
     end
 end
 
-function result = ToLeftTest(PointA,PointB,PointC)
-    Area = PointA(1) * PointB(2) - PointA(2) * PointB(1) + PointB(1) * PointC(2) ...
-		- PointB(2) * PointC(1) + PointC(1) * PointA(2) - PointC(2) * PointA(1);
-    yuzhi = 1^-10;
-    if Area > yuzhi
-        result = 1;
-    end
-    if Area < -yuzhi
-        result = -1;
-    end
-    if Area<yuzhi && Area>-yuzhi
-        result = 0;
-    end
-end
 
 function RandNumber = RandGenerateNumber(a,b,Num)
     RandNumber = a + (b-a).*rand(Num,1);
