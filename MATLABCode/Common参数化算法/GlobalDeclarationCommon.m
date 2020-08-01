@@ -36,6 +36,16 @@ theta3Range = [-130 -20];
 % theta4Range = [-100 150];
 theta4Range = [-179 179];
 
+% theta1Range(1) = legalizAnger(theta1Range(1));
+% theta1Range(2) = legalizAnger(theta1Range(2));
+% theta2Range(1) = legalizAnger(theta2Range(1));
+% theta2Range(2) = legalizAnger(theta2Range(2));
+% theta3Range(1) = legalizAnger(theta3Range(1));
+% theta3Range(2) = legalizAnger(theta3Range(2));
+% theta4Range(1) = legalizAnger(theta4Range(1));
+% theta4Range(2) = legalizAnger(theta4Range(2));
+
+
 ZeroDefine = 10^-6;
 
 tinterval = 0.01; % 离散的pid控制系统，采样时间过高了的话有可能会造成发散

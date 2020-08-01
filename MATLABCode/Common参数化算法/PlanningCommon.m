@@ -43,7 +43,14 @@ PointB = [ -131.8404 -260.5854 -415.8218]; %这组数据很奇怪，目标位置到处变
 
 PointA = [437.0117   76.3013    5.7303];
 PointB = [348.9690   58.1109 -216.2471];
-[PointA,PointB] = RandGenratePointDirectLine([200 250]);
+
+PointA = [-266.3541 -497.8007 -285.9217];
+PointB = [-260.9417 -487.0669    4.5837];
+
+PointA = [ -113.8933 -593.2268 -154.3792];
+PointB = [ -101.7682 -521.2970  119.7108];
+
+% [PointA,PointB] = RandGenratePointDirectLine([250 300]);
 
 % figure
 % plot3(PointA(1),PointA(2),PointA(3),'o');
@@ -53,15 +60,17 @@ PointB = [348.9690   58.1109 -216.2471];
 % view([-129 47])
 
 
-resultPoints = RandGenerateStableBucketPoints(1200,[155,-155]);
+resultPoints = RandGenerateStableBucketPoints(10,[-30,-30]);
 figure
 plot(resultPoints(:,2),resultPoints(:,3),'.');
 axis([100 700 -500 500])
 
 
 timethis = tic;
-[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(PointA,PointB,-100,30,150,150,150,15,25,25,InnerEdgeUp,InnerEdgeDown,TwoInnerTangentPoints);
+[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(PointA,PointB,theta4Range(1),theta4Range(2),150,150,150,15,25,25,InnerEdgeUp,InnerEdgeDown,TwoInnerTangentPoints);
 toc(timethis)
+result = CombineTheta123AndTheta4(PointsSequence,theta4sequence);
+VisualizationExcavator(result);
 
 figure
 plot(PointsSequence(1,:),PointsSequence(2,:),'r-');
@@ -290,6 +299,7 @@ function [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDig
 %             if abs(mean(Queue)-Queue(1))<0.1 这个的取值跟采样时间有关系    若采样时间为0.02，则不能用这个
             if abs(mean(Queue)-Queue(1))<0.1
                 break;
+%                 disp('');
             end
         end
         num = num+1;
@@ -304,6 +314,9 @@ function [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDig
 %         k_xishuV = 1.1*errovalue + 0.002*Sumerrovalue - 0.65*derrovalue; %修改这个pid的参数达到更好的效果
         k_xishuV = kp*errovalue + ki*Sumerrovalue - kd*derrovalue;
         k_xishuV = Limit2range(k_xishuV,[0,1]);
+%         plot(num,k_xishuV,'.');
+%         hold on 
+%         pause(0.1);
         Lasterrovalue = errovalue;
         
         [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(k_xishuV,CurrentPoint,jointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3);
@@ -344,6 +357,9 @@ function [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDig
 %             break; %之后就开始减速 以两个关节都能承受的加速度进行减速，只不过最后可能会超出末位置 如果是以最大值进行减速，则正好到目标点，否则会超过目标点。要尽可能使加速度达到最大！
 %         end
     end
+    
+    %到这时，要不是因为速度太慢而退出，此时没有到达目的地；要不是因为以高速度到达了目标位置，减速时让误差又进一步拉大
+    %加外层pid的原因就是需要让算法以到达目的地且末速度为0退出，不进入下边的减速过程
 
 %     if flagSlowDown == 0 %必须减速
 %         flagSlowDown = 1;
@@ -356,7 +372,7 @@ function [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDig
 %     if flagSlowDown == 1
    
     acurrenttheta3 = amaxtheta3;
-    while abs(vtheta3)>(acurrenttheta3*tinterval) %这个减速过程用pid结构时根本用不到，但是可以考虑用在短距离直线规划上，以后再考虑
+    while abs(vtheta3)>(acurrenttheta3*tinterval) %这个减速结构能用上 因为pid的输出是速度，有积分项的话不可能让速度为0
         k1 = theta1*pi/180;
         k2 = theta2*pi/180;
         k3 = theta3*pi/180;
@@ -429,20 +445,15 @@ function [PointsSequence,theta4sequence,endPosition,DirectReachable] = LinearDig
     while success == 0
         tf = k_tf*tf;
         [theta4sequence,success] = ManipulatorPlanningJointSpace(theta4begin,theta4end,tf,amaxtheta4,Vmaxtheta4,tinterval);
+        [PointsSequence1,success1] = ManipulatorPlanningJointSpaceMethod2test(theta4begin,theta4end,tf,amaxtheta4,Vmaxtheta4,tinterval);
+        if sum(sum(theta4sequence-PointsSequence1))~=0
+            erro('函数逻辑有问题！');
+        end
     end
 %     enddistance = norm(CurrentPoint-EndPoint); %这是误差，经过少量测试，误差不会超过2cm
     endPosition = CurrentPoint;
 end
 
-function thetaout = legalizAnger(theta) %把角度限制在(-180,180]
-    thetaout = theta;
-    while thetaout>180 
-        thetaout = thetaout-360;
-    end
-    while thetaout<=-180
-        thetaout = thetaout+360;
-    end
-end
 
 function valueout = Limit2range(value,range)
     valueout = value;
@@ -1220,6 +1231,188 @@ function [PointsSequence,success] = ManipulatorPlanningJointSpace(theta0,thetaf,
     success = 1;
 end
 
+function [PointsSequence,success] = ManipulatorPlanningJointSpaceMethod2test(theta0,thetaf,tf,AMAX,VMAX,SampleTime) %这是转C++的代码测试
+    PointsSequence = [];
+    for i=1:tf/SampleTime+1
+        t = (i-1)*SampleTime;
+        [PointCurrentTime,success] = ManipulatorPlanningJointSpaceSub(theta0,thetaf,tf,AMAX,VMAX,t,0.1,1);
+        if success == 1
+            PointsSequence = [PointsSequence [t;PointCurrentTime]];
+        else
+            PointsSequence = [];
+            return;
+        end
+    end
+end
+
+function [PointCurrentTime,success] = ManipulatorPlanningJointSpaceSub(theta0,thetaf,tf,AMAX,VMAX,t,k,k_amax) %t必须在[0,tf]区间内 k=ta/tb,取值范围为[0,0.5] k_amax取值范围为[0,1]
+%-180,180 角度体系
+    theta0 = legalizAnger(theta0);
+    thetaf = legalizAnger(thetaf);
+    
+    success = 0;
+    PointCurrentTime = theta0;
+    if t<0
+%         disp("t不能小于0！");
+        return;
+    end
+    if t>tf
+%         disp('t不能大于tf！');
+        return;
+    end
+    
+    flagNeedXG = 0;
+    if theta0*thetaf<0
+        if theta0>0
+            if theta0-thetaf>180
+                thetaf = 180+180+thetaf;
+                flagNeedXG = 1;
+            end
+        else
+            if thetaf-theta0>180
+                theta0 = 180+180+theta0;
+                flagNeedXG = 1;
+            end
+        end
+    end
+   
+%     k = 0.1; %k=ta/tb,取值范围为[0,0.5]
+    if theta0 == thetaf
+        PointCurrentTime = theta0;
+        success = 1;
+        return;
+    end
+    if (theta0<thetaf)
+        a_LowerBound = 4*(theta0-thetaf)/( (k-1)*tf^2 );
+        a_Uppertemp = VMAX^2 / ( (1-k)*(theta0-thetaf+tf*VMAX) );
+        if a_Uppertemp<a_LowerBound
+%             disp('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+            return;
+        end
+        if a_Uppertemp>=AMAX
+            if AMAX<a_LowerBound
+%                 disp('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
+                return;
+            end
+            a_UpperBound = AMAX;
+        else
+            if a_Uppertemp<a_LowerBound
+%                 disp('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+                return;
+            end
+            a_UpperBound = a_Uppertemp;
+        end
+%         amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+        amax = a_LowerBound + k_amax * (a_UpperBound-a_LowerBound);
+%         amax = a_UpperBound;
+        tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k));
+        ta = k*tb;
+        
+%             PointsSequence(1,i) = (i-1)*SampleTime;
+%             t = PointsSequence(1,i);
+        if t>=0&&t<ta
+            PointCurrentTime = (amax*t^3)/(6*k*tb) + theta0;
+
+        end
+        if t>=ta && t<tb-ta
+            PointCurrentTime = theta0 + (amax*t*(t - k*tb))/2 + (amax*k^2*tb^2)/6;
+
+        end
+        if t>=tb-ta && t<tb
+            PointCurrentTime = theta0 + (amax*t^2)/(2*k) + (amax*k^2*tb^2)/6 + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*t*k^2 - 6*t*k + 3*t))/(6*k) - (amax*t^3)/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tb && t<tf-tb
+            PointCurrentTime = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 + amax*(tb - k*tb)*(t - tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tf-tb && t<tf-tb+ta
+            PointCurrentTime = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k) - (amax*(t + tb - tf)*(6*k^2*tb^2 - 6*k*tb^2 + t^2 + 2*t*tb - 2*t*tf + tb^2 - 2*tb*tf + tf^2))/(6*k*tb);
+
+        end
+        if t>=tf-tb+ta && t<tf-ta
+            PointCurrentTime = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - (amax*(t + tb - tf - k*tb)*(t - tb - tf + 2*k*tb))/2 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tf-ta && t<=tf
+            PointCurrentTime = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/3 - amax*(2*tb - tf)*(tb - k*tb) + amax*(tb - k*tb)*(tb - 2*k*tb) - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) + (amax*(t^3 - 3*t^2*tf + 3*t*tf^2 - tf^3))/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        
+    else
+        thetatemp = thetaf;
+        thetaf = theta0;
+        theta0 = thetatemp;
+        a_LowerBound = 4*(theta0-thetaf)/( (k-1)*tf^2 );
+        a_Uppertemp = VMAX^2 / ( (1-k)*(theta0-thetaf+tf*VMAX) );
+        if a_Uppertemp<a_LowerBound
+%             disp('1VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+            return;
+        end
+        if a_Uppertemp>=AMAX
+            if AMAX<a_LowerBound
+%                 disp('加速度不满足要求，修改tf或者theta0 thetaf或者改变AMAX');
+                return;
+            end
+            a_UpperBound = AMAX;
+        else
+            if a_Uppertemp<a_LowerBound
+%                 disp('2VMAX不满足要求，修改tf或者theta0 thetaf或者改变VMAX');
+                return;
+            end
+            a_UpperBound = a_Uppertemp;
+        end
+%         amax = RandGenerateNumber(a_LowerBound,a_UpperBound,1);
+%         amax = a_UpperBound;
+        amax = a_LowerBound + k_amax * (a_UpperBound-a_LowerBound);
+        tb = -((-amax*(k - 1)*(4*theta0 - 4*thetaf + amax*tf^2 - amax*k*tf^2))^(1/2) - amax*tf + amax*k*tf)/(2*(amax - amax*k));
+        ta = k*tb;
+%         for i=1:tf/SampleTime+1
+%             PointsSequence(1,i) = (i-1)*SampleTime;
+%             t = PointsSequence(1,i);
+        t = 2*(tf/2)-t;
+        if t>=0&&t<ta
+            PointCurrentTime = (amax*t^3)/(6*k*tb) + theta0;
+
+        end
+        if t>=ta && t<tb-ta
+            PointCurrentTime = theta0 + (amax*t*(t - k*tb))/2 + (amax*k^2*tb^2)/6;
+
+        end
+        if t>=tb-ta && t<tb
+            PointCurrentTime = theta0 + (amax*t^2)/(2*k) + (amax*k^2*tb^2)/6 + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*t*k^2 - 6*t*k + 3*t))/(6*k) - (amax*t^3)/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tb && t<tf-tb
+            PointCurrentTime = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 + amax*(tb - k*tb)*(t - tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tf-tb && t<tf-tb+ta
+            PointCurrentTime = theta0 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k) - (amax*(t + tb - tf)*(6*k^2*tb^2 - 6*k*tb^2 + t^2 + 2*t*tb - 2*t*tf + tb^2 - 2*tb*tf + tf^2))/(6*k*tb);
+
+        end
+        if t>=tf-tb+ta && t<tf-ta
+            PointCurrentTime = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/6 - (amax*(t + tb - tf - k*tb)*(t - tb - tf + 2*k*tb))/2 - amax*(2*tb - tf)*(tb - k*tb) + (amax*(tb - k*tb)*(tb - 2*k*tb))/2 - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+        if t>=tf-ta && t<=tf
+            PointCurrentTime = theta0 - (amax*((tf - tb + k*tb)^2 - 2*tb*tf - 6*k*tb^2 + 2*tb*(tf - tb + k*tb) - 2*tf*(tf - tb + k*tb) + tb^2 + tf^2 + 6*k^2*tb^2))/6 + (amax*tb^2)/(3*k) + (amax*k^2*tb^2)/3 - amax*(2*tb - tf)*(tb - k*tb) + amax*(tb - k*tb)*(tb - 2*k*tb) - (amax*tb*(6*tb*k^2 - 6*tb*k + 3*tb))/(6*k) + (amax*(t^3 - 3*t^2*tf + 3*t*tf^2 - tf^3))/(6*k*tb) - (amax*tb^2*(7*k^3 - 12*k^2 + 6*k - 1))/(6*k);
+
+        end
+%         end
+    end
+    if flagNeedXG==1
+        PointCurrentTime = legalizAnger(PointCurrentTime);
+%         if PointCurrentTime>180
+%             PointCurrentTime = -180 + (PointCurrentTime-180);
+%         end
+    end
+    success = 1;
+end
+
+
+
+
 
 function TWOPOINTS = FindInnerEdgeTangentPoints()
     lidu = 0.5;
@@ -1231,6 +1424,7 @@ function TWOPOINTS = FindInnerEdgeTangentPoints()
     hold on 
     plot(InnerEdge(:,1),InnerEdge(:,2),'.');
     hold on 
+    axis([100 700 -500 500])
 
     InnerCH = [InnerEdge zeros(size(InnerEdge,1),1)];
     InnerCH = GetCHGrahamScan(InnerCH);
@@ -1399,6 +1593,7 @@ function Angle = GetAngleOfBucketWithGround(theta1,theta2,theta3,theta4) %得到在
         Angle = abstheta4;
     end
     Angle = Angle*180/pi;
+    Angle = legalizAnger(Angle);
 end
 
 function BucketwithGroundRange = GetBucketwithGroundRange(theta1,theta2,theta3) 
@@ -1504,38 +1699,60 @@ function [Theta4Range,YES] = groundAngleRangeTOtheta4Range(theta1,theta2,theta3,
     if isempty(Theta4Range)==1
         YES = 0;
     else
-        if size(Theta4Range,2)==1
-            Theta4Range = Theta4Range{1};
-            if CheckInrange(Theta4Range,theta4Range)==0
-                error('程序逻辑出错');
-            end
-        else
-            if size(Theta4Range,2)==2
-                if abs(Theta4Range{1}(2)-Theta4Range{2}(1))>0.001
-                    if CheckInrange(Theta4Range{1},theta4Range)==0
-                        error('程序逻辑出错');
-                    end
-                    if CheckInrange(Theta4Range{2},theta4Range)==0
-                        error('程序逻辑出错');
-                    end
-                else
-                    Theta4Range = [Theta4Range{1}(1) Theta4Range{2}(2)];
-                    if CheckInrange(Theta4Range,theta4Range)==0
-                        error('程序逻辑出错');
-                    end
-                end
-            else
-                error('程序逻辑出错！');
-            end
-        end
         YES = 1;
     end
-    if isempty(Theta4Range)==1 && YES == 1
-        error('程序逻辑出错');
+    if YES==1
+        for i=1:size(Theta4Range,2)
+            if CheckInrange(Theta4Range{i},theta4Range)==0
+                error('程序逻辑出错');
+            end
+        end
     end
+
+    
+%     if isempty(Theta4Range)==1
+%         YES = 0;
+%     else
+%         if size(Theta4Range,2)==1
+%             Theta4Range = Theta4Range{1};
+%             if CheckInrange(Theta4Range,theta4Range)==0
+%                 error('程序逻辑出错');
+%             end
+%         else
+%             if size(Theta4Range,2)==2
+%                 if abs(Theta4Range{1}(2)-Theta4Range{2}(1))>0.001
+%                     if CheckInrange(Theta4Range{1},theta4Range)==0
+%                         error('程序逻辑出错');
+%                     end
+%                     if CheckInrange(Theta4Range{2},theta4Range)==0
+%                         error('程序逻辑出错');
+%                     end
+%                 else
+%                     Theta4Range = [Theta4Range{1}(1) Theta4Range{2}(2)];
+%                     if CheckInrange(Theta4Range,theta4Range)==0
+%                         error('程序逻辑出错');
+%                     end
+%                 end
+%             else
+% %                 error('程序逻辑出错！');
+%                 %还是有可能出现三个区间的
+%                 for i=1:size(Theta4Range,2)
+%                     if CheckInrange(Theta4Range{i},theta4Range)==0
+%                         error('程序逻辑出错');
+%                     end
+%                 end
+%             end
+%         end
+%         YES = 1;
+%     end
+%     if isempty(Theta4Range)==1 && YES == 1
+%         error('程序逻辑出错');
+%     end
 end
 
 function resultPoints = RandGenerateStableBucketPoints(num,BucketStableRange) %在与机械臂共面的笛卡尔坐标系中随机生成num个点，这num个点存在theta4使得铲斗中内容物不漏，内容物不漏的前提是铲斗与地面的夹角属于BucketStableRange
+    BucketStableRange(1) = legalizAnger(BucketStableRange(1));
+    BucketStableRange(2) = legalizAnger(BucketStableRange(2));
     count = 0;
     resultPoints = [];
     while count<num
@@ -1570,6 +1787,11 @@ function YES = CheckInrange(qujian,range) %必须得满足qujian(2)>=qujian(1) range(
         YES = 0;
         return;
     end
+    if isempty(qujian)==1
+        error('qujian 不能为空区间');
+        YES = 0;
+        return;
+    end
     if size(qujian,2)==1
         if qujian>=range(1) && qujian <=range(2)
             YES = 1;
@@ -1589,7 +1811,79 @@ function YES = CheckInrange(qujian,range) %必须得满足qujian(2)>=qujian(1) range(
     end
 end
 
+function result = CombineTheta123AndTheta4(Theta123,Theta4) %时间间隔必须一致
+    if size(Theta123,2)>size(Theta4,2)
+        tmp = Theta4(2,end);
+        for i=size(Theta4,2)+1:size(Theta123,2)
+            Theta4(1,i) = Theta123(1,i);
+            Theta4(2,i) = tmp;
+        end
+    else
+        if size(Theta123,2)<size(Theta4,2)
+            tmp = Theta123(2:4,end);
+            for i=size(Theta123,2)+1:size(Theta4,2)
+                Theta123(1,i) = Theta4(1,i);
+                Theta123(2:4,i) = tmp;
+            end
+        end
+    end
+    
+    if size(Theta123,2)~=size(Theta4,2)
+        error('程序逻辑出错');
+    end
+    result  =[];
+    for i=1:size(Theta123,2)
+        if norm(Theta123(1,i)-Theta4(1,i))<0.001
+            result = [result,[Theta123(1,i);Theta123(2:4,i);Theta4(2,i)]];
+        else
+            error('程序逻辑出错');
+        end
+    end
+end
 
+function VisualizationExcavator(AngleSequence) %可视化整个挖机臂
+    %AngleSequence的第一行必须是时间，第2 3 4 5 行是四个角度
+    figure
+    view([81,21])
+    
+    GlobalDeclarationCommon
+    P0 = [0,0,0];
+    for i=1:10:size(AngleSequence,2)
+        k1 = AngleSequence(2,i)*pi/180;
+        k2 = AngleSequence(3,i)*pi/180;
+        k3 = AngleSequence(4,i)*pi/180;
+        k4 = AngleSequence(5,i)*pi/180;
+        
+%         [withground,YES] = groundAngleRangeTOtheta4Range(AngleSequence(2,i),AngleSequence(3,i),AngleSequence(4,i),[AngleSequence(5,i),AngleSequence(5,i)])
+        
+        P1 = [a0,-d1*sin(m0),d1*cos(m0)];
+        P2 = [a0 + a1*cos(k1) + d2*sin(k1)*sin(m1),a1*cos(m0)*sin(k1) - d1*sin(m0) - d2*cos(m1)*sin(m0) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + d2*cos(m0)*cos(m1) + a1*sin(k1)*sin(m0) - d2*cos(k1)*sin(m0)*sin(m1)];
+        P3 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + a1*cos(k1) + d2*sin(k1)*sin(m1) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - d1*sin(m0) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
+        P4 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - d1*sin(m0) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
+        P5 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + tool*(cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1))) + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - d1*sin(m0) - tool*(cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))) + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),tool*(cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))) + d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
+        
+        plot3(P0(1),P0(2),P0(3),'o');
+        hold on 
+        plot3(P1(1),P1(2),P1(3),'o');
+        hold on 
+        plot3(P2(1),P2(2),P2(3),'o');
+        hold on
+        plot3(P3(1),P3(2),P3(3),'o');
+        hold on
+        plot3(P4(1),P4(2),P4(3),'o');
+        hold on
+        plot3(P5(1),P5(2),P5(3),'o');
+        hold on 
+        
+        lineP = [P0;P1;P2;P3;P4;P5];
+        plot3(lineP(:,1),lineP(:,2),lineP(:,3),'-');
+        hold on 
+        axis([-600 600 -600 600 -600 600]);
+        grid on
+        pause(0.1);
+        clf
+    end
+end
 
 
 
