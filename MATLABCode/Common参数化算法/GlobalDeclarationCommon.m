@@ -32,9 +32,9 @@ tool=123.5;
 theta1Range = [-179.9999 180];
 theta2Range = [-40 44];
 theta3Range = [-130 -20];
-% theta4Range = [-100 30];
+theta4Range = [-100 30];
 % theta4Range = [-100 150];
-theta4Range = [-179 179];
+% theta4Range = [-179 179];
 
 % theta1Range(1) = legalizAnger(theta1Range(1));
 % theta1Range(2) = legalizAnger(theta1Range(2));
