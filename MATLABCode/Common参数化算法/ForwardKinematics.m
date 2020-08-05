@@ -77,4 +77,5 @@ function [position1,position2] = ForwardKinematics(jointangle)
 
     position1 = m_matrixtemp3;%//²ù¶·Ðý×ªÖÐÐÄ×ø±ê
     position2 = m_matrixtemp4;%//Ä©¶Ë²ù³Ý×ø±ê
+    
 end

@@ -29,6 +29,8 @@ d1=57.9;
 d2=13.7;
 tool=123.5;
 
+cosinetheta = -a1/(sqrt(d2^2+a1^2)); %ÃèÊö»úĞµ±ÛÓëÔ²°ë¾¶µÄ¼Ğ½ÇÓàÏÒÖµ
+
 theta1Range = [-179.9999 180];
 theta2Range = [-40 44];
 theta3Range = [-130 -20];

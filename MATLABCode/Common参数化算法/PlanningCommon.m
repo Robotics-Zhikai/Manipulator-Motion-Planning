@@ -4,9 +4,12 @@ close all
 clear all
 
 
-% ParametersConfigCommon
-
 GlobalDeclarationCommon
+
+
+VisualBuckettipOuterEdge(150);
+
+
 TwoInnerTangentPoints = FindInnerEdgeTangentPoints();
 InnerEdgeDown = GetInnerEdgeOfPlaneWorkSpaceDown(0.5);
 InnerEdgeUp = GetInnerEdgeOfPlaneWorkSpaceUp(0.5);
@@ -26,8 +29,20 @@ InnerEdgeUp = GetInnerEdgeOfPlaneWorkSpaceUp(0.5);
 
 
 %%
+[PointA,BeginAngelBucketWithGround,PointB,EndAngelBucketWithGround,angleA,angleB] = RandGenratePointDirectLineBucketTip([200 250]);
+[Theta4Range,YES] = groundAngleRangeTOtheta4Range(angleA(1),angleA(2),angleA(3),[BeginAngelBucketWithGround,BeginAngelBucketWithGround]);
+[Theta4Range1,YES1] = groundAngleRangeTOtheta4Range(angleB(1),angleB(2),angleB(3),[EndAngelBucketWithGround,EndAngelBucketWithGround]);
+if abs(Theta4Range{1}-angleA(4))>0.001 || abs(Theta4Range1{1}-angleB(4))>0.001
+    error('ÉÏ±ßÁ½¸öº¯ÊýµÄ³ÌÐòÂß¼­³öÁËÎÊÌâ');
+end
+
+BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,15,25,25);
 
 
+
+
+%%
+%ÕâÊÇ²ù¶·Ðý×ªÖÐÐÄµÄ¹æ»®
 % PointA = [-32.1682 -588.1967  218.8374];
 % PointB = [-30.6171 -538.7770  260.6377];
 % 
@@ -52,6 +67,8 @@ PointB = [-260.9417 -487.0669    4.5837];
 PointA = [ -113.8933 -593.2268 -154.3792];
 PointB = [ -101.7682 -521.2970  119.7108];
 
+PointA = [-508.0082  290.3112  130.1380];
+PointB = [-361.0164  210.8165 -170.4685];
 [PointA,PointB] = RandGenratePointDirectLine([300 350]);
 
 % figure
@@ -61,10 +78,12 @@ PointB = [ -101.7682 -521.2970  119.7108];
 % hold on 
 % view([-129 47])
 
-BucketTipLinearPlanning(PointA,PointB,150,150,150,15,25,25);
 
-AngleSequencetest = [0;theta1Range(1);theta2Range(1);theta3Range(1);theta4Range(1)];
+
+AngleSequencetest = [0;90;theta2Range(1);theta3Range(1);theta4Range(1)];
 VisualizationExcavator(AngleSequencetest);
+
+
 
 resultPoints = RandGenerateStableBucketPoints(10,[-30,-30]);
 figure
@@ -116,6 +135,37 @@ end
 % db2(1,1,1,0,3,2,1) %0.001
 
 % result = mathAtan2(1,2)
+
+function VisualBuckettipOuterEdge(lidu)
+    GlobalDeclarationCommon
+    figure
+    liduthis = lidu;
+    k1= 90;
+    for k2 = theta2Range(1):liduthis:theta2Range(2)
+        for k3 = theta3Range(1):theta3Range(2)-theta3Range(1):theta3Range(2)
+            for k4 = theta4Range(1):liduthis:theta4Range(2)
+                [position1,position2] = ForwardKinematics([k1;k2;k3;k4]);
+                plot(position2(2,4),position2(3,4),'r.');
+                hold on 
+                pause(0.1);
+            end
+            plot(position1(2,4),position1(3,4),'b.');
+            hold on 
+        end
+    end
+    for k2 = theta2Range(1):theta2Range(2)-theta2Range(1):theta2Range(2)
+        for k3 = theta3Range(1):liduthis:theta3Range(2)
+            for k4 = theta4Range(1):liduthis:theta4Range(2)
+                [position1,position2] = ForwardKinematics([k1;k2;k3;k4]);
+                plot(position2(2,4),position2(3,4),'r.');
+                hold on 
+                pause(0.1);
+            end
+            plot(position1(2,4),position1(3,4),'b.');
+            hold on 
+        end
+    end
+end
 
 function[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4,InnerEdgeUp,InnerEdgeDown,TwoInnerTangentPoints)%½â¾öÈÎÒâ¿ÉÖ±´ïÖ±ÏßÍÚ¾ò
 %ÎªÁË½â¾ö¼ÓÉÏpid¿ØÖÆºó²»ÄÜ¾«È·µ½´ïÄ¿±êÎ»ÖÃµÄÎÊÌâ
@@ -472,7 +522,8 @@ function valueout = Limit2range(value,range)
     end
 end
 
-function jointAngle = InverseKinematicsPos2Angle(position)%ÊäÈëÎªÁÐÏòÁ¿£¬Êä³öÎªÇ°Èý¸ö½ÇµÄ½Ç¶È ÎªºáÏòÁ¿
+function [jointAngle,reliable] = InverseKinematicsPos2Angle(position)%ÊäÈëÎªÁÐÏòÁ¿£¬Êä³öÎªÇ°Èý¸ö½ÇµÄ½Ç¶È ÎªºáÏòÁ¿
+    reliable = 1;
     GlobalDeclarationCommon
     ZERO = ZeroDefine;
     M_PI = pi;
@@ -535,7 +586,11 @@ function jointAngle = InverseKinematicsPos2Angle(position)%ÊäÈëÎªÁÐÏòÁ¿£¬Êä³öÎªÇ
 	jointAngle(1) = mTempAngleOne(1);
 	Mtemp1 = (pow(cos(jointAngle(1))*px + sin(jointAngle(1))*py - a(2), 2) + pow(pz - d(1), 2) - pow(a(3), 2) - pow(a(4), 2)) / (2 * a(3) * a(4));
     
-
+    if abs(Mtemp1)>1
+        reliable = 0;
+        return;
+        error('ËÆºõ³¬³öÁË¹¤×÷¿Õ¼ä£¬½á¹û²»¿ÉÐÅ');
+    end
 	jointAngle(3) = -abs(acos(Mtemp1));
 
 
@@ -544,12 +599,19 @@ function jointAngle = InverseKinematicsPos2Angle(position)%ÊäÈëÎªÁÐÏòÁ¿£¬Êä³öÎªÇ
 	tempn = pz - d(1);
     if abs(tempm*tempm + tempn*tempn) <= ZERO
         disp("error!");
+        reliable = 0;
+        return;
         error('error'); %zk20200730
         return ;
     else
         tempTwo1 = ((a(3) + a(4) * cos(jointAngle(3)))*tempn - a(4) * sin(jointAngle(3))*tempm) / (tempm*tempm + tempn*tempn);
     end
 	
+    if abs(tempTwo1)>1
+        reliable = 0;
+        return;
+        error('ËÆºõ³¬³öÁË¹¤×÷¿Õ¼ä£¬½á¹û²»¿ÉÐÅ');
+    end
 	jointAngle(2) = asin(tempTwo1);
 
 % 	double tempfour1, tempfour2;
@@ -1027,10 +1089,19 @@ function YES = IsDirectReachablePlane(InnerEdgeUp,InnerEdgeDown,TwoInnerTangentP
     
 %     z=(-A*y-C)/B;
 %     y=(-B*z-C)/A;
-    PointALocatey = (PointA(1)^2+PointA(2)^2-d2^2)^(1/2) ;
+%     PointALocatey = (PointA(1)^2+PointA(2)^2-(sqrt(a1^2+d2^2))^2)^(1/2) ;
+    bthis = sqrt(a1^2+d2^2);
+    athis=norm(PointA(1:2));
+    cthis = (2*bthis*cosinetheta+sqrt(4*bthis^2*cosinetheta^2-4*(bthis^2-athis^2)))/2;
+    PointALocatey = cthis;
     yCriticalA = (-B*PointA(3)-C)/A;
-    PointBLocatey = (PointB(1)^2+PointB(2)^2-d2^2)^(1/2) ;
+%     PointBLocatey = (PointB(1)^2+PointB(2)^2-(sqrt(a1^2+d2^2))^2)^(1/2) ;
+    bthis = sqrt(a1^2+d2^2);
+    athis=norm(PointB(1:2));
+    cthis = (2*bthis*cosinetheta+sqrt(4*bthis^2*cosinetheta^2-4*(bthis^2-athis^2)))/2;
+    PointBLocatey = cthis;
     yCriticalB = (-B*PointB(3)-C)/A;
+    
     FakePointA = [0 PointALocatey PointA(3)];
     FakePointB = [0 PointBLocatey PointB(3)];
     if PointALocatey>=yCriticalA && PointBLocatey>=yCriticalB
@@ -1484,6 +1555,7 @@ function EdgePoints = GetOuterEdgeOfPlaneWorkSpace(lidu)
     end
 end
 
+
 function EdgePoints = GetInnerEdgeOfPlaneWorkSpace(lidu) %µÃµ½Æ½ÃæµÄÄÚ²à±ßÔµ y-zÏµ 
     GlobalDeclarationCommon
     EdgePoints = [];
@@ -1537,7 +1609,7 @@ function [PointA,PointB] = RandGenratePointLineParallelground(TwoInnerTangentPoi
     
 end
 
-function [PointA,PointB] = RandGenratePointDirectLine(Range)%Éú³ÉÁ½¸öµã£¬ÕâÁ½¸öµãÔÚÒ»Ö±ÏßÉÏ£¬ÓëÍÚ»ú±Û¹²Ãæ µ«ÕâÁ©Ö±Ïß²»Ò»¶¨ÊÇÖ±Ïß¿É´ïµÄ ¾àÀëÔÚRange·¶Î§ÄÚ
+function [PointA,PointB] = RandGenratePointDirectLine(Range)%Éú³ÉÁ½¸öµã£¬ÕâÁ½¸öµãÔÚÒ»Ö±ÏßÉÏ£¬ÓëÍÚ»ú±Û¹²Ãæ µ«ÕâÁ©Ö±Ïß²»Ò»¶¨ÊÇÖ±Ïß¿É´ïµÄ ¾àÀëÔÚRange·¶Î§ÄÚ ÕâÊÇ²ù¶·Ðý×ªÖÐÐÄ
     distance = 2*Range(2);
     GlobalDeclarationCommon
     while (distance<Range(1) || distance>Range(2))
@@ -1565,6 +1637,37 @@ function [PointA,PointB] = RandGenratePointDirectLine(Range)%Éú³ÉÁ½¸öµã£¬ÕâÁ½¸öµ
     end
     
 end
+
+function [PointA,BeginAngelBucketWithGround,PointB,EndAngelBucketWithGround,angleA,angleB] = RandGenratePointDirectLineBucketTip(Range) %²»Ò»¶¨Ö±Ïß¿É´ï
+    distance = 2*Range(2);
+    GlobalDeclarationCommon
+    while (distance<Range(1) || distance>Range(2))
+        
+        theta1 = RandGenerateNumber(theta1Range(1),theta1Range(2),1);
+
+        theta2A = RandGenerateNumber(theta2Range(1),theta2Range(2),1);
+        theta3A = RandGenerateNumber(theta3Range(1),theta3Range(2),1);
+        theta4A = RandGenerateNumber(theta4Range(1),theta4Range(2),1);
+
+        theta2B = RandGenerateNumber(theta2Range(1),theta2Range(2),1);
+        theta3B = RandGenerateNumber(theta3Range(1),theta3Range(2),1);
+        theta4B = RandGenerateNumber(theta4Range(1),theta4Range(2),1);
+
+        angleA = [theta1 theta2A theta3A theta4A];
+        angleB = [theta1 theta2B theta3B theta4B];
+        
+        [~,position1A] = ForwardKinematics(angleA);
+        [~,position1B] = ForwardKinematics(angleB);
+
+        PointA = position1A(1:3,4)';
+        PointB = position1B(1:3,4)';
+        
+        distance = norm(PointA-PointB);
+    end
+    BeginAngelBucketWithGround = GetAngleOfBucketWithGround(theta1,theta2A,theta3A,theta4A);
+    EndAngelBucketWithGround = GetAngleOfBucketWithGround(theta1,theta2B,theta3B,theta4B);
+end
+
 
 function RandNumber = RandGenerateNumber(a,b,Num)
     RandNumber = a + (b-a).*rand(Num,1);
@@ -1847,51 +1950,53 @@ function result = CombineTheta123AndTheta4(Theta123,Theta4) %Ê±¼ä¼ä¸ô±ØÐëÒ»ÖÂ
     end
 end
 
-function VisualizationExcavator(AngleSequence) %¿ÉÊÓ»¯Õû¸öÍÚ»ú±Û
+function PlotTheta1234(theta1,theta2,theta3,theta4)  %¿ÉÊÓ»¯Õû¸öÍÚ»ú±Û
+    GlobalDeclarationCommon
+    view([81,21])
+    P0 = [0,0,0];
+    k1 = theta1*pi/180;
+    k2 = theta2*pi/180;
+    k3 = theta3*pi/180;
+    k4 = theta4*pi/180;
+    
+    P1 = [a0,-d1*sin(m0),d1*cos(m0)];
+    P2 = [a0 + a1*cos(k1) + d2*sin(k1)*sin(m1),a1*cos(m0)*sin(k1) - d1*sin(m0) - d2*cos(m1)*sin(m0) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + d2*cos(m0)*cos(m1) + a1*sin(k1)*sin(m0) - d2*cos(k1)*sin(m0)*sin(m1)];
+    P3 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + a1*cos(k1) + d2*sin(k1)*sin(m1) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - d1*sin(m0) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
+    P4 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - d1*sin(m0) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
+    P5 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + tool*(cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1))) + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - d1*sin(m0) - tool*(cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))) + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),tool*(cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))) + d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
+    Ptmp = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - (tool*(sin(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + cos(k4)*cos(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2))))/2 + (tool*(cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1))))/2 + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - d1*sin(m0) - (tool*(cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))))/2 + (tool*(sin(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + cos(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - cos(k4)*cos(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))))/2 + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),(tool*(cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))))/2 - (tool*(sin(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) - cos(k4)*cos(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))))/2 + d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
+%     norm([P2(1) P2(2)])
+%     dot((P1(1:2)-P2(1:2))/norm(P1(1:2)-P2(1:2)),(P3(1:2)-P2(1:2))/norm(P3(1:2)-P2(1:2)))
+     %PtmpÊÇÓÃÀ´±ê¼Ç²ù¶··½ÏòµÄ
+
+    plot3(P0(1),P0(2),P0(3),'.','LineWidth',4);
+    hold on 
+    plot3(P1(1),P1(2),P1(3),'.','LineWidth',4);
+    hold on 
+    plot3(P2(1),P2(2),P2(3),'.','LineWidth',4);
+    hold on
+    plot3(P3(1),P3(2),P3(3),'.','LineWidth',4);
+    hold on
+    plot3(P4(1),P4(2),P4(3),'.','LineWidth',4);
+    hold on
+    plot3(Ptmp(1),Ptmp(2),Ptmp(3),'*');
+    hold on 
+    plot3(P5(1),P5(2),P5(3),'.','LineWidth',4);
+    hold on 
+
+    lineP = [P0;P1;P2;P3;P4;P5;Ptmp;P4];
+    plot3(lineP(:,1),lineP(:,2),lineP(:,3),'-');
+    hold on 
+    axis([-750 750 -750 750 -750 750]);
+    grid on
+end
+
+function VisualizationExcavator(AngleSequence)
     %AngleSequenceµÄµÚÒ»ÐÐ±ØÐëÊÇÊ±¼ä£¬µÚ2 3 4 5 ÐÐÊÇËÄ¸ö½Ç¶È
     figure
-    view([81,21])
-    
-    GlobalDeclarationCommon
-    P0 = [0,0,0];
     for i=1:10:size(AngleSequence,2)
-        k1 = AngleSequence(2,i)*pi/180;
-        k2 = AngleSequence(3,i)*pi/180;
-        k3 = AngleSequence(4,i)*pi/180;
-        k4 = AngleSequence(5,i)*pi/180;
-        
 %         [withground,YES] = groundAngleRangeTOtheta4Range(AngleSequence(2,i),AngleSequence(3,i),AngleSequence(4,i),[AngleSequence(5,i),AngleSequence(5,i)])
-        
-        P1 = [a0,-d1*sin(m0),d1*cos(m0)];
-        P2 = [a0 + a1*cos(k1) + d2*sin(k1)*sin(m1),a1*cos(m0)*sin(k1) - d1*sin(m0) - d2*cos(m1)*sin(m0) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + d2*cos(m0)*cos(m1) + a1*sin(k1)*sin(m0) - d2*cos(k1)*sin(m0)*sin(m1)];
-        P3 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + a1*cos(k1) + d2*sin(k1)*sin(m1) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - d1*sin(m0) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
-        P4 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - d1*sin(m0) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
-        P5 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + tool*(cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1))) + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - d1*sin(m0) - tool*(cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))) + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),tool*(cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))) + d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
-        Ptmp = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - (tool*(sin(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + cos(k4)*cos(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2))))/2 + (tool*(cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1))))/2 + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - d1*sin(m0) - (tool*(cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))))/2 + (tool*(sin(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + cos(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - cos(k4)*cos(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))))/2 + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),(tool*(cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))))/2 - (tool*(sin(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) - cos(k4)*cos(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))))/2 + d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
-        
-        
-        %PtmpÊÇÓÃÀ´±ê¼Ç²ù¶··½ÏòµÄ
-        
-        plot3(P0(1),P0(2),P0(3),'.','LineWidth',4);
-        hold on 
-        plot3(P1(1),P1(2),P1(3),'.','LineWidth',4);
-        hold on 
-        plot3(P2(1),P2(2),P2(3),'.','LineWidth',4);
-        hold on
-        plot3(P3(1),P3(2),P3(3),'.','LineWidth',4);
-        hold on
-        plot3(P4(1),P4(2),P4(3),'.','LineWidth',4);
-        hold on
-        plot3(Ptmp(1),Ptmp(2),Ptmp(3),'*');
-        hold on 
-        plot3(P5(1),P5(2),P5(3),'.','LineWidth',4);
-        hold on 
-        
-        lineP = [P0;P1;P2;P3;P4;P5;Ptmp;P4];
-        plot3(lineP(:,1),lineP(:,2),lineP(:,3),'-');
-        hold on 
-        axis([-750 750 -750 750 -750 750]);
-        grid on
+        PlotTheta1234(AngleSequence(2,i),AngleSequence(3,i),AngleSequence(4,i),AngleSequence(5,i));
         pause(0.1);
         if i+10<size(AngleSequence,2)
             clf
@@ -2039,13 +2144,13 @@ function k_Range=GetRangeOfv50_k(JacoboMatrix,BeginPoint,EndPoint,Vtheta2Max,Vth
     end
 end
 
-function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_theta4_WithGround,End_theta4_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
+function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
 %²ù¶·¼âÖ±Ïß¹æ»®
     GlobalDeclarationCommon
     CurrentPoint = BeginPoint;
-    jointAngle = InverseKinematics(CurrentPoint');
+    jointAngle = InverseKinematicsBucketTip(CurrentPoint',Begin_Bucket_WithGround);
     
-    [Theta4Range,YES] = groundAngleRangeTOtheta4Range(theta1,theta2,theta3,[Begin_theta4_WithGround Begin_theta4_WithGround]);
+    [Theta4Range,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[Begin_Bucket_WithGround Begin_Bucket_WithGround]);
     
     while norm(CurrentPoint-EndPoint)>1
         JacoboMatrix = Getv50_JacoboMatrix(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
@@ -2118,7 +2223,9 @@ function jointAngle = InverseKinematics(position)
 	jointAngle(1) = mTempAngleOne(1);
 	Mtemp1 = (pow(cos(jointAngle(1))*px + sin(jointAngle(1))*py - a(2), 2) + pow(pz - d(1), 2) - pow(a(3), 2) - pow(a(4), 2)) / (2 * a(3) * a(4));
     
-
+    if abs(Mtemp1)>1
+        error('ËÆºõ³¬³öÁË¹¤×÷¿Õ¼ä£¬½á¹û²»¿ÉÐÅ');
+    end
 	jointAngle(3) = -abs(acos(Mtemp1));
 
 
@@ -2131,7 +2238,9 @@ function jointAngle = InverseKinematics(position)
     else
         tempTwo1 = ((a(3) + a(4) * cos(jointAngle(3)))*tempn - a(4) * sin(jointAngle(3))*tempm) / (tempm*tempm + tempn*tempn);
     end
-	
+    if abs(tempTwo1)>1
+        error('ËÆºõ³¬³öÁË¹¤×÷¿Õ¼ä£¬½á¹û²»¿ÉÐÅ');
+    end
 	jointAngle(2) = asin(tempTwo1);
 
 % 	double tempfour1, tempfour2;
@@ -2144,11 +2253,71 @@ function jointAngle = InverseKinematics(position)
     end
 end
 
-function InverseKinematicsBucketTip(pos,ThetawithGround) 
+function result = InverseKinematicsBucketTip(pos,ThetaBucketwithGround) 
 %ÊäÈëÎª²ù¶·³Ý¼âµÄÎ»ÖÃºÍ²ù¶·ÓëµØÃæµÄ¼Ð½Ç£¬Êä³öÎªtheta1 theta2 theta3 theta4
 %20200804ÐèÒªÐ´
+    ThetaBucketwithGround = legalizAnger(ThetaBucketwithGround);
+    pos = pos';
     GlobalDeclarationCommon
-    GetQiedianOfCircle([0,0],[pos(1),pos(2)],d2);
+%     qiedian = GetQiedianOfCircle([0,0],[pos(1),pos(2)],d2);
+    gedian = GetGedianOfcircle([pos(1),pos(2)]);
+    if isempty(gedian)==0
+%         qiedian = qiedian(1,:);
+    else
+        erorr('Âß¼­³ö´í');
+    end
+    
+    flagsuccess = 0;
+    countNotReliable = 0;
+    countNotFitable = 0;
+    for i =1:size(gedian,1)
+        direction = (pos(1,1:2)-gedian(i,1:2))/norm(pos(1,1:2)-gedian(i,1:2));
+        if ThetaBucketwithGround<0
+            thetatmp = ThetaBucketwithGround+90;
+            pos3(1,1:2) = pos(1,1:2) - tool*sin(thetatmp*pi/180)*direction;
+            pos3(1,3) = pos(1,3) + tool*cos(thetatmp*pi/180);
+        else
+            thetatmp = 90-ThetaBucketwithGround;
+            pos3(1,1:2) = pos(1,1:2) - tool*sin(thetatmp*pi/180)*direction;
+            pos3(1,3) = pos(1,3) - tool*cos(thetatmp*pi/180);
+        end
+        [theta123,reliable] = InverseKinematicsPos2Angle(pos3);
+        if reliable==0
+            countNotReliable = countNotReliable + 1;
+            continue;
+        end
+
+        [Theta4,YES] = groundAngleRangeTOtheta4Range(theta123(1),theta123(2),theta123(3),[ThetaBucketwithGround,ThetaBucketwithGround]);
+        if YES == 0
+            countNotFitable = countNotFitable +1;
+            continue;
+%             error('µ±Ç°ÊäÈëµÄ³Ý¼âpos²»ÄÜÂú×ãÊ¹µÃ²ù¶·ÓëµØÃæ¼Ð½ÇÊÇThetaBucketwithGround');
+        else
+            [postmp0,postmp] = ForwardKinematics([theta123(1),theta123(2),theta123(3),Theta4{1}]);
+            if norm(postmp(1:3,4)-pos')>0.001
+                continue;
+            else
+                flagsuccess = 1;
+                break;
+            end
+        end
+    end
+    if countNotReliable==2 || countNotFitable==2
+        result = [];
+        return ; %±íÃ÷ÎÞ·¨Çó½â
+    end
+    figure
+    PlotTheta1234(theta123(1),theta123(2),theta123(3),Theta4{1});
+    hold on 
+    plot3(pos(1),pos(2),pos(3),'o');
+    if flagsuccess==0
+        if CheckInrange(theta123(1),theta1Range) && CheckInrange(theta123(2),theta2Range) && CheckInrange(theta123(3),theta3Range)
+            error('³ÌÐòÂß¼­³ö´í');
+        else
+            error('³ÌÐòÂß¼­Ã»ÎÊÌâ£¬Ö¸¶¨µÄposÎ»ÖÃÔÚÏÞÖÆµÄÌõ¼þÏÂ²»ÄÜµ½´ï');
+        end
+    end
+    result = [theta123(1),theta123(2),theta123(3),Theta4{1}];
 end
 
 function qiedian = GetQiedianOfCircle(ptCenter,ptOutside,dbRadious)
@@ -2185,6 +2354,24 @@ function qiedian = GetQiedianOfCircle(ptCenter,ptOutside,dbRadious)
 %  //6. Êµ¼ÊÓ¦ÓÃ¹ý³ÌÖÐ£¬Ö»ÒªÒ»¸öÖÐ¼ä±äÁ¿E,ÆäËûF,G,H¿ÉÒÔ²»ÓÃ¡£
 end
 
+function gedian = GetGedianOfcircle(ptOutside)
+%Ô²µÄÖÐÐÄÊÇ0,0µã
+    GlobalDeclarationCommon
+    athis = norm(ptOutside);
+    bthis = sqrt(a1^2+d2^2);
+    xp = ptOutside(1);
+    yp = ptOutside(2);
+    cthis = (2*bthis*cosinetheta+sqrt(4*bthis^2*cosinetheta^2-4*(bthis^2-athis^2)))/2;
+    cosalpha1 = (2*(bthis-cthis*cosinetheta)*xp + sqrt( (2*(bthis-cthis*cosinetheta)*xp)^2-4*athis^2*((bthis-cthis*cosinetheta)^2-yp^2) ) )/(2*athis^2);
+    sinalpha1 = (bthis-cthis*cosinetheta-xp*cosalpha1)/yp;
+    gedian(1,1)=bthis*cosalpha1;
+    gedian(1,2)=bthis*sinalpha1;
+    
+    cosalpha2 = (2*(bthis-cthis*cosinetheta)*xp - sqrt( (2*(bthis-cthis*cosinetheta)*xp)^2-4*athis^2*((bthis-cthis*cosinetheta)^2-yp^2) ) )/(2*athis^2);
+    sinalpha2 = (bthis-cthis*cosinetheta-xp*cosalpha2)/yp;
+    gedian(2,1)=bthis*cosalpha2;
+    gedian(2,2)=bthis*sinalpha2;
+end
 
 
 
