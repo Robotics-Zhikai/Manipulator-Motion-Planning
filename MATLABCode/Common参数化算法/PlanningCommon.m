@@ -7,7 +7,7 @@ clear all
 GlobalDeclarationCommon
 
 
-VisualBuckettipOuterEdge(150);
+
 
 
 TwoInnerTangentPoints = FindInnerEdgeTangentPoints();
@@ -35,9 +35,10 @@ InnerEdgeUp = GetInnerEdgeOfPlaneWorkSpaceUp(0.5);
 if abs(Theta4Range{1}-angleA(4))>0.001 || abs(Theta4Range1{1}-angleB(4))>0.001
     error('上边两个函数的程序逻辑出了问题');
 end
-
-BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,15,25,25);
-
+VisualBuckettipOuterEdge(110);
+PlotSingularPointsOfBucketTip(110,PointA,PointB);
+BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,15,25,25,25,25);
+% (BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
 
 
 
@@ -135,6 +136,39 @@ end
 % db2(1,1,1,0,3,2,1) %0.001
 
 % result = mathAtan2(1,2)
+
+function PlotSingularPointsOfBucketTip(lidu,StartPoint,EndPoint)
+    GlobalDeclarationCommon
+    k1=60;
+    liduthis = lidu;
+    x0 = StartPoint(1);
+    y0 = StartPoint(2);
+    z0 = StartPoint(3);
+    
+    x1 = EndPoint(1);
+    y1 = EndPoint(2);
+    z1 = EndPoint(3);
+    for k2 = theta2Range(1):liduthis:theta2Range(2)
+        for k3 = theta3Range(1):liduthis:theta3Range(2)
+            for k4 = theta4Range(1):liduthis:theta4Range(2)
+                JacoboMatrix = Getv50_JacoboMatrix(k1,k2,k3,k4);
+                a11 = JacoboMatrix(1,1); a12 = JacoboMatrix(1,2); a13 = JacoboMatrix(1,3); a14 = JacoboMatrix(1,4);
+                a21 = JacoboMatrix(2,1); a22 = JacoboMatrix(2,2); a23 = JacoboMatrix(2,3); a24 = JacoboMatrix(2,4);
+                a31 = JacoboMatrix(3,1); a32 = JacoboMatrix(3,2); a33 = JacoboMatrix(3,3); a34 = JacoboMatrix(3,4);
+                rank(JacoboMatrix(1:3,2:4))
+%                 a32 = (z1-z0)/(x1-x0)*a12; a33 = (z1-z0)/(x1-x0)*a13; a34 = (z1-z0)/(x1-x0)*a14;
+                detofthis = a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32;
+                if detofthis==0
+                    [position1,position2] = ForwardKinematics([k1;k2;k3;k4]);
+                    plot(position2(2,4),position2(3,4),'ko');
+                    hold on 
+                    pause(0.1);
+                end
+            end
+        end
+    end
+
+end
 
 function VisualBuckettipOuterEdge(lidu)
     GlobalDeclarationCommon
@@ -818,7 +852,7 @@ function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(k_xishu,CurrentPointTMP
 end
 
 function out = GetIntersection(qujianA,qujianB)
-%20200717 写这个交集函数
+%20200717 写这个交集函数 输出的集合应该是有序的 从小到大
     out = [];
     if isempty(qujianA)==1 || isempty(qujianB)==1
         out = [];
@@ -2096,19 +2130,157 @@ function JacoboMatrix = Getv50_JacoboMatrix(theta1,theta2,theta3,theta4)
     JacoboMatrix=[J11,J12,J13,J14;J21,J22,J23,J24;J31,J32,J33,J34];
 end
 
-function [vtheta2,vtheta3,vtheta4]=Getv50k_2_vtheta(JacoboMatrix,BeginPoint,EndPoint,k)
-%输出是弧度数！！
+function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
+    GlobalDeclarationCommon
     vectorbe = EndPoint-BeginPoint;
     xn = vectorbe(1)/norm(vectorbe);
     yn = vectorbe(2)/norm(vectorbe);
+    
     zn = vectorbe(3)/norm(vectorbe);
+    x0 = BeginPoint(1);
+    y0 = BeginPoint(2);
+    z0 = BeginPoint(3);
     
-    vtheta3up = (JacoboMatrix(2,2)-JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2))*(k*xn-JacoboMatrix(1,4)/JacoboMatrix(3,4)*k*zn) - (JacoboMatrix(1,2)-JacoboMatrix(1,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2))*(k*yn-JacoboMatrix(2,4)/JacoboMatrix(3,4)*k*zn);
-    vtheta3down = (JacoboMatrix(1,2)-JacoboMatrix(1,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2))*(JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,3)-JacoboMatrix(2,3))-(JacoboMatrix(1,4)/JacoboMatrix(3,4)*JacoboMatrix(3,3)-JacoboMatrix(1,3))*(JacoboMatrix(2,2)-JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2));
-    vtheta3 = vtheta3up/vtheta3down;
+    x1 = EndPoint(1);
+    y1 = EndPoint(2);
+    z1 = EndPoint(3);
     
-    vtheta2 = ((JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,3)-JacoboMatrix(2,3))*vthete3 + k*yn-JacoboMatrix(2,4)/JacoboMatrix(3,4)*k*zn)/(JacoboMatrix(2,2)-JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2));
-    vtheta4 = (k*zn-JacoboMatrix(3,2)*vtheta2-JacoboMatrix(3,3)*vtheta3)/JacoboMatrix(3,4);
+    %     a11 = JacoboMatrix(1,1); 
+    a12 = JacoboMatrix(1,2); a13 = JacoboMatrix(1,3); a14 = JacoboMatrix(1,4);
+%     a21 = JacoboMatrix(2,1); 
+    a22 = JacoboMatrix(2,2); a23 = JacoboMatrix(2,3); a24 = JacoboMatrix(2,4);
+%     a31 = JacoboMatrix(3,1); 
+%     a32 = JacoboMatrix(3,2); a33 = JacoboMatrix(3,3); a34 = JacoboMatrix(3,4);
+%     a32 = (z1-z0)/(x1-x0)*a12; a33 = (z1-z0)/(x1-x0)*a13; a34 = (z1-z0)/(x1-x0)*a14;
+    
+
+    currentvtheta2Range = [lastvtheta2-atheta2max*tinterval,lastvtheta2+atheta2max*tinterval];
+    currentvtheta2Range = GetIntersection(currentvtheta2Range,[-Vtheta2Max,Vtheta2Max]);
+    
+    currentvtheta3Range = [lastvtheta3-atheta3max*tinterval,lastvtheta3+atheta3max*tinterval];
+    currentvtheta3Range = GetIntersection(currentvtheta3Range,[-Vtheta3Max,Vtheta3Max]);
+    
+    currentvtheta4Range = [lastvtheta4-atheta4max*tinterval,lastvtheta4+atheta4max*tinterval];
+    currentvtheta4Range = GetIntersection(currentvtheta4Range,[-Vtheta4Max,Vtheta4Max]);
+    
+    if isempty(currentvtheta2Range)==1 || isempty(currentvtheta3Range)==1 || isempty(currentvtheta4Range)==1
+        error('程序出错了，不能保证速度的限制了');
+    end
+    
+    currentvtheta2Range(1) = currentvtheta2Range(1)*pi/180; currentvtheta2Range(2) = currentvtheta2Range(2)*pi/180;
+    currentvtheta3Range(1) = currentvtheta3Range(1)*pi/180; currentvtheta3Range(2) = currentvtheta3Range(2)*pi/180;
+    currentvtheta4Range(1) = currentvtheta4Range(1)*pi/180; currentvtheta4Range(2) = currentvtheta4Range(2)*pi/180;
+    
+    vtheta4 = max(currentvtheta4Range);
+    
+%     vtheta2 = ((a13*a24 - a14*a23)/(a12*a23 - a13*a22))*vtheta4 + ((a23*xn - a13*yn)/(a12*a23 - a13*a22))*k;
+%     k = ((a12*a23 - a13*a22)/(a23*xn - a13*yn))*vtheta2 + (-(a13*a24 - a14*a23)/(a23*xn - a13*yn))*vtheta4;
+    tmp1 = ((a12*a23 - a13*a22)/(a23*xn - a13*yn))*currentvtheta2Range(1) + (-(a13*a24 - a14*a23)/(a23*xn - a13*yn))*vtheta4;
+    tmp2 = ((a12*a23 - a13*a22)/(a23*xn - a13*yn))*currentvtheta2Range(2) + (-(a13*a24 - a14*a23)/(a23*xn - a13*yn))*vtheta4;
+    if tmp2<0 && tmp1<0
+        error('vtheta4的取值不对，使得不管vtheta2取多少，都不能沿着既定方向走');
+    else
+        if tmp1<0
+            tmp1 = 0;
+        end
+        if tmp2<0
+            tmp2 = 0;
+        end
+    end
+    k_vtheta2Range = [min([tmp1,tmp2]) max([tmp1,tmp2])];
+    
+%     vtheta3 = (-(a12*a24 - a14*a22)/(a12*a23 - a13*a22))*vtheta4 + (-(a22*xn - a12*yn)/(a12*a23 - a13*a22))*k;
+%     k=(-(a12*a23 - a13*a22)/(a22*xn - a12*yn))*vtheta3 + (-(a12*a24 - a14*a22)/(a22*xn - a12*yn))*vtheta4;
+    tmp1 = (-(a12*a23 - a13*a22)/(a22*xn - a12*yn))*currentvtheta3Range(1) + (-(a12*a24 - a14*a22)/(a22*xn - a12*yn))*vtheta4;
+    tmp2 = (-(a12*a23 - a13*a22)/(a22*xn - a12*yn))*currentvtheta3Range(2) + (-(a12*a24 - a14*a22)/(a22*xn - a12*yn))*vtheta4;
+    if tmp2<0 && tmp1<0
+        error('vtheta4的取值不对，使得不管vtheta3取多少，都不能沿着既定方向走');
+    else
+        if tmp1<0
+            tmp1 = 0;
+        end
+        if tmp2<0
+            tmp2 = 0;
+        end
+    end
+    k_vtheta3Range = [min([tmp1,tmp2]) max([tmp1,tmp2])];
+    
+    k_Range = GetIntersection(k_vtheta2Range,k_vtheta3Range);
+    k_Rangetmp = [min(k_Range) max(k_Range)];
+    k_Range = k_Rangetmp;
+    %至此，要想满足vtheta4值下铲尺直线运动且朝向指定的方向，k的值应该满足k_Range范围
+    
+    
+    %然后再根据k的取值范围，按一定规则取k的值，已知vtheta4，把vtheta2 vtheta3 解出来 
+    vtheta2L = ((a13*a24 - a14*a23)/(a12*a23 - a13*a22))*vtheta4 + ((a23*xn - a13*yn)/(a12*a23 - a13*a22))*k_Range(1);
+    vtheta2U = ((a13*a24 - a14*a23)/(a12*a23 - a13*a22))*vtheta4 + ((a23*xn - a13*yn)/(a12*a23 - a13*a22))*k_Range(2);
+    testrange = [min([vtheta2L vtheta2U]),max([vtheta2L vtheta2U])];
+    test = GetIntersection(testrange,currentvtheta2Range);
+    if norm(test-testrange)>0.001
+        error('逻辑出错');
+    end
+    
+    vtheta3L = (-(a12*a24 - a14*a22)/(a12*a23 - a13*a22))*vtheta4 + (-(a22*xn - a12*yn)/(a12*a23 - a13*a22))*k_Range(1);
+    vtheta3U = (-(a12*a24 - a14*a22)/(a12*a23 - a13*a22))*vtheta4 + (-(a22*xn - a12*yn)/(a12*a23 - a13*a22))*k_Range(2);
+    testrange = [min([vtheta3L vtheta3U]),max([vtheta3L vtheta3U])];
+    test = GetIntersection(testrange,currentvtheta3Range);
+    if norm(test-testrange)>0.001
+        error('逻辑出错');
+    end
+    
+    k_power = 1;
+    k = k_Range(1) + k_power*(k_Range(2)-k_Range(1));
+    
+    vtheta2 = ((a13*a24 - a14*a23)/(a12*a23 - a13*a22))*vtheta4 + ((a23*xn - a13*yn)/(a12*a23 - a13*a22))*k;
+    vtheta3 = (-(a12*a24 - a14*a22)/(a12*a23 - a13*a22))*vtheta4 + (-(a22*xn - a12*yn)/(a12*a23 - a13*a22))*k;
+    
+    vtheta2 = vtheta2*pi/180;
+    vtheta3 = vtheta3*pi/180;
+    vtheta4 = vtheta4*pi/180;
+    
+%     figure
+%     for vtheta2=currentvtheta2Range(1):(currentvtheta2Range(2)-currentvtheta2Range(1))/20:currentvtheta2Range(2)
+%         for vtheta4=currentvtheta4Range(1):(currentvtheta4Range(2)-currentvtheta4Range(1))/20:currentvtheta4Range(2)
+%             k = ((a12*a23 - a13*a22)/(a23*xn - a13*yn))*vtheta2 + (-(a13*a24 - a14*a23)/(a23*xn - a13*yn))*vtheta4;
+%             plot3(vtheta2,vtheta4,k,'r.');
+%             hold on 
+%         end
+%     end
+end
+
+% function Limitqujian2Rnage(qujian,LIMIT)
+% %将一区间，限制其子集到LIMIT中
+%     
+% end
+
+function [vtheta2,vtheta3,vtheta4]=Getv50k_2_vtheta(JacoboMatrix,BeginPoint,EndPoint,k)
+%输出是弧度数！！
+    
+
+    
+    Vx = k*xn;
+    Vy = k*yn;
+    Vz = k*zn;
+    
+
+    
+%     vtheta2 = (a23*a34 - a24*a33)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32)*Vx+(-(a13*a34 - a14*a33)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32))*Vy+((a13*a24 - a14*a23)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32))*Vz;
+%     vtheta3 = (-(a22*a34 - a24*a32)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32))*Vx+((a12*a34 - a14*a32)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32))*Vy+(-(a12*a24 - a14*a22)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32))*Vz;
+%     vtheta4 = ((a22*a33 - a23*a32)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32))*Vx+(-(a12*a33 - a13*a32)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32))*Vy+((a12*a23 - a13*a22)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32))*Vz;
+
+                                                                                                         
+    vtheta2 = (a23*a34*k*xn - a24*a33*k*xn - a13*a34*k*yn + a14*a33*k*yn + a13*a24*k*zn - a14*a23*k*zn)/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32);
+    vtheta3 = -(k*(a22*a34*xn - a24*a32*xn - a12*a34*yn + a14*a32*yn + a12*a24*zn - a14*a22*zn))/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32);
+    vtheta4 = (k*(a22*a33*xn - a23*a32*xn - a12*a33*yn + a13*a32*yn + a12*a23*zn - a13*a22*zn))/(a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32);
+    
+    
+    
+%     vtheta3up = (JacoboMatrix(2,2)-JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2))*(k*xn-JacoboMatrix(1,4)/JacoboMatrix(3,4)*k*zn) - (JacoboMatrix(1,2)-JacoboMatrix(1,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2))*(k*yn-JacoboMatrix(2,4)/JacoboMatrix(3,4)*k*zn);
+%     vtheta3down = (JacoboMatrix(1,2)-JacoboMatrix(1,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2))*(JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,3)-JacoboMatrix(2,3))-(JacoboMatrix(1,4)/JacoboMatrix(3,4)*JacoboMatrix(3,3)-JacoboMatrix(1,3))*(JacoboMatrix(2,2)-JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2));
+%     vtheta3 = vtheta3up/vtheta3down;
+    
+%     vtheta2 = ((JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,3)-JacoboMatrix(2,3))*vthete3 + k*yn-JacoboMatrix(2,4)/JacoboMatrix(3,4)*k*zn)/(JacoboMatrix(2,2)-JacoboMatrix(2,4)/JacoboMatrix(3,4)*JacoboMatrix(3,2));
+%     vtheta4 = (k*zn-JacoboMatrix(3,2)*vtheta2-JacoboMatrix(3,3)*vtheta3)/JacoboMatrix(3,4);
 end
 
 function [vtheta2Slope,vtheta3Slope,vtheta4Slope]=Getv50_vthetaSlope(JacoboMatrix,BeginPoint,EndPoint)
@@ -2151,19 +2323,24 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     jointAngle = InverseKinematicsBucketTip(CurrentPoint',Begin_Bucket_WithGround);
     
     [Theta4Range,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[Begin_Bucket_WithGround Begin_Bucket_WithGround]);
-    
+    lastvtheta2 = 0;
+    lastvtheta3 = 0;
+    lastvtheta4 = 0;
     while norm(CurrentPoint-EndPoint)>1
         JacoboMatrix = Getv50_JacoboMatrix(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
-        k_Range=GetRangeOfv50_k(JacoboMatrix,BeginPoint,EndPoint,Vtheta2Max,Vtheta3Max,Vtheta4Max);
-        [vtheta2,vtheta3,vtheta4]= Getv50k_2_vtheta(JacoboMatrix,BeginPoint,EndPoint,k_Range(2));
-        vtheta2 = RadToDeg(vtheta2);
-        vtheta3 = RadToDeg(vtheta3);
-        vtheta4 = RadToDeg(vtheta4);
+        
+        [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max);
+%         k_Range=GetRangeOfv50_k(JacoboMatrix,BeginPoint,EndPoint,Vtheta2Max,Vtheta3Max,Vtheta4Max);
+%         [vtheta2,vtheta3,vtheta4]= Getv50k_2_vtheta(JacoboMatrix,BeginPoint,EndPoint,k_Range(2));
+%         vtheta2 = RadToDeg(vtheta2);
+%         vtheta3 = RadToDeg(vtheta3);
+%         vtheta4 = RadToDeg(vtheta4);
         jointAngle(2) = jointAngle(2) + vtheta2*tinterval;
         jointAngle(3) = jointAngle(3) + vtheta3*tinterval;
         jointAngle(4) = jointAngle(4) + vtheta4*tinterval;
         [~,pos2] = ForwardKinematics(jointAngle);
         CurrentPoint = pos2(1:3,4)';
+        norm(CurrentPoint-EndPoint)
     end
     
 end
