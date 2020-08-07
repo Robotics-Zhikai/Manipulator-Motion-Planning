@@ -37,6 +37,16 @@ if abs(Theta4Range{1}-angleA(4))>0.001 || abs(Theta4Range1{1}-angleB(4))>0.001
 end
 VisualBuckettipOuterEdge(110);
 PlotSingularPointsOfBucketTip(110,PointA,PointB);
+
+% PointA = [370.5466  430.4401 -357.6222];
+% PointB = [383.6440  446.4183 -121.4106];
+% BeginAngelBucketWithGround = -73.0732;
+% EndAngelBucketWithGround = -109.0813;
+PointA = [-26.7292  510.7350    5.2501];
+PointB = [-10.9153  311.1723  -90.0148];
+BeginAngelBucketWithGround =  -77.0072;
+EndAngelBucketWithGround =  -147.7394;
+
 BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,15,25,25,25,25);
 % (BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
 
@@ -139,7 +149,7 @@ end
 
 function PlotSingularPointsOfBucketTip(lidu,StartPoint,EndPoint)
     GlobalDeclarationCommon
-    k1=60;
+    k1=90;
     liduthis = lidu;
     x0 = StartPoint(1);
     y0 = StartPoint(2);
@@ -151,14 +161,19 @@ function PlotSingularPointsOfBucketTip(lidu,StartPoint,EndPoint)
     for k2 = theta2Range(1):liduthis:theta2Range(2)
         for k3 = theta3Range(1):liduthis:theta3Range(2)
             for k4 = theta4Range(1):liduthis:theta4Range(2)
-                JacoboMatrix = Getv50_JacoboMatrix(k1,k2,k3,k4);
+                
+                JacoboMatrix = GetvOmiga50_JacoboMatrix(k1,k2,k3,k4);
                 a11 = JacoboMatrix(1,1); a12 = JacoboMatrix(1,2); a13 = JacoboMatrix(1,3); a14 = JacoboMatrix(1,4);
                 a21 = JacoboMatrix(2,1); a22 = JacoboMatrix(2,2); a23 = JacoboMatrix(2,3); a24 = JacoboMatrix(2,4);
                 a31 = JacoboMatrix(3,1); a32 = JacoboMatrix(3,2); a33 = JacoboMatrix(3,3); a34 = JacoboMatrix(3,4);
-                rank(JacoboMatrix(1:3,2:4))
+                a51 = JacoboMatrix(5,1); a52 = JacoboMatrix(5,2); a53 = JacoboMatrix(5,3); a54 = JacoboMatrix(5,4);
+%                 rank(JacoboMatrix(1:6,2:4))
+%                 JacoboMatrix
 %                 a32 = (z1-z0)/(x1-x0)*a12; a33 = (z1-z0)/(x1-x0)*a13; a34 = (z1-z0)/(x1-x0)*a14;
                 detofthis = a12*a23*a34 - a12*a24*a33 - a13*a22*a34 + a13*a24*a32 + a14*a22*a33 - a14*a23*a32;
-                if detofthis==0
+                detofnew = (a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52)
+                if detofnew==0
+                    detofthis
                     [position1,position2] = ForwardKinematics([k1;k2;k3;k4]);
                     plot(position2(2,4),position2(3,4),'ko');
                     hold on 
@@ -2109,7 +2124,87 @@ function J34 = Getv50_Jacobo34(k1,k2,k3,k4)
 
 end
 
-function JacoboMatrix = Getv50_JacoboMatrix(theta1,theta2,theta3,theta4)
+function J41 = GetOmiga50_Jacobo41(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J41 = ((sin(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + cos(k4)*cos(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)))*(cos(k3)*sin(k2)*sin(k4)*sin(m1) - cos(k4)*cos(m1)*cos(m2)*sin(m3) + cos(m1)*sin(k3)*sin(k4)*sin(m2) - cos(k3)*cos(k4)*cos(m1)*cos(m3)*sin(m2) + cos(k2)*cos(m2)*sin(k3)*sin(k4)*sin(m1) + cos(k4)*cos(m3)*sin(k2)*sin(k3)*sin(m1) + cos(k2)*cos(k4)*sin(m1)*sin(m2)*sin(m3) - cos(k2)*cos(k3)*cos(k4)*cos(m2)*cos(m3)*sin(m1)) - (cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)))*(cos(k2)*cos(m3)*sin(m1)*sin(m2) - cos(m1)*cos(m2)*cos(m3) + cos(k3)*cos(m1)*sin(m2)*sin(m3) - sin(k2)*sin(k3)*sin(m1)*sin(m3) + cos(k2)*cos(k3)*cos(m2)*sin(m1)*sin(m3)) + (cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)))*(cos(k3)*cos(k4)*sin(k2)*sin(m1) + cos(k4)*cos(m1)*sin(k3)*sin(m2) + cos(m1)*cos(m2)*sin(k4)*sin(m3) + cos(k2)*cos(k4)*cos(m2)*sin(k3)*sin(m1) + cos(k3)*cos(m1)*cos(m3)*sin(k4)*sin(m2) - cos(m3)*sin(k2)*sin(k3)*sin(k4)*sin(m1) - cos(k2)*sin(k4)*sin(m1)*sin(m2)*sin(m3) + cos(k2)*cos(k3)*cos(m2)*cos(m3)*sin(k4)*sin(m1)));
+
+end
+
+function J42 = GetOmiga50_Jacobo42(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J42 = ((cos(m2)*cos(m3) - cos(k3)*sin(m2)*sin(m3))*(cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2))) - (sin(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + cos(k4)*cos(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)))*(cos(k4)*cos(m2)*sin(m3) - sin(k3)*sin(k4)*sin(m2) + cos(k3)*cos(k4)*cos(m3)*sin(m2)) + (cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)))*(cos(k4)*sin(k3)*sin(m2) + cos(m2)*sin(k4)*sin(m3) + cos(k3)*cos(m3)*sin(k4)*sin(m2)));
+
+end
+
+function J43 = GetOmiga50_Jacobo43(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J43 = (cos(m3)*(cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2))) - cos(k4)*sin(m3)*(sin(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + cos(k4)*cos(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2))) + sin(k4)*sin(m3)*(cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1))));
+
+end
+
+function J44 = GetOmiga50_Jacobo44(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J44 = (cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)));
+
+end
+
+function J51 = GetOmiga50_Jacobo51(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J51 = (- (sin(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + cos(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - cos(k4)*cos(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))))*(cos(k3)*sin(k2)*sin(k4)*sin(m1) - cos(k4)*cos(m1)*cos(m2)*sin(m3) + cos(m1)*sin(k3)*sin(k4)*sin(m2) - cos(k3)*cos(k4)*cos(m1)*cos(m3)*sin(m2) + cos(k2)*cos(m2)*sin(k3)*sin(k4)*sin(m1) + cos(k4)*cos(m3)*sin(k2)*sin(k3)*sin(m1) + cos(k2)*cos(k4)*sin(m1)*sin(m2)*sin(m3) - cos(k2)*cos(k3)*cos(k4)*cos(m2)*cos(m3)*sin(m1)) - (cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))))*(cos(k3)*cos(k4)*sin(k2)*sin(m1) + cos(k4)*cos(m1)*sin(k3)*sin(m2) + cos(m1)*cos(m2)*sin(k4)*sin(m3) + cos(k2)*cos(k4)*cos(m2)*sin(k3)*sin(m1) + cos(k3)*cos(m1)*cos(m3)*sin(k4)*sin(m2) - cos(m3)*sin(k2)*sin(k3)*sin(k4)*sin(m1) - cos(k2)*sin(k4)*sin(m1)*sin(m2)*sin(m3) + cos(k2)*cos(k3)*cos(m2)*cos(m3)*sin(k4)*sin(m1)) - (cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))))*(cos(k2)*cos(m3)*sin(m1)*sin(m2) - cos(m1)*cos(m2)*cos(m3) + cos(k3)*cos(m1)*sin(m2)*sin(m3) - sin(k2)*sin(k3)*sin(m1)*sin(m3) + cos(k2)*cos(k3)*cos(m2)*sin(m1)*sin(m3)));
+
+end
+
+function J52 = GetOmiga50_Jacobo52(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J52 = ((cos(m2)*cos(m3) - cos(k3)*sin(m2)*sin(m3))*(cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))) + (sin(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + cos(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - cos(k4)*cos(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))))*(cos(k4)*cos(m2)*sin(m3) - sin(k3)*sin(k4)*sin(m2) + cos(k3)*cos(k4)*cos(m3)*sin(m2)) - (cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))))*(cos(k4)*sin(k3)*sin(m2) + cos(m2)*sin(k4)*sin(m3) + cos(k3)*cos(m3)*sin(k4)*sin(m2)));
+
+end
+
+function J53 = GetOmiga50_Jacobo53(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J53 = (cos(m3)*(cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))) + cos(k4)*sin(m3)*(sin(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + cos(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - cos(k4)*cos(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))) - sin(k4)*sin(m3)*(cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))));
+
+end
+
+function J54 = GetOmiga50_Jacobo54(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J54 = (cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))));
+
+end
+
+function J61 = GetOmiga50_Jacobo61(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J61 = ((sin(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) - cos(k4)*cos(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))))*(cos(k3)*sin(k2)*sin(k4)*sin(m1) - cos(k4)*cos(m1)*cos(m2)*sin(m3) + cos(m1)*sin(k3)*sin(k4)*sin(m2) - cos(k3)*cos(k4)*cos(m1)*cos(m3)*sin(m2) + cos(k2)*cos(m2)*sin(k3)*sin(k4)*sin(m1) + cos(k4)*cos(m3)*sin(k2)*sin(k3)*sin(m1) + cos(k2)*cos(k4)*sin(m1)*sin(m2)*sin(m3) - cos(k2)*cos(k3)*cos(k4)*cos(m2)*cos(m3)*sin(m1)) + (sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))))*(cos(k2)*cos(m3)*sin(m1)*sin(m2) - cos(m1)*cos(m2)*cos(m3) + cos(k3)*cos(m1)*sin(m2)*sin(m3) - sin(k2)*sin(k3)*sin(m1)*sin(m3) + cos(k2)*cos(k3)*cos(m2)*sin(m1)*sin(m3)) + (cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))))*(cos(k3)*cos(k4)*sin(k2)*sin(m1) + cos(k4)*cos(m1)*sin(k3)*sin(m2) + cos(m1)*cos(m2)*sin(k4)*sin(m3) + cos(k2)*cos(k4)*cos(m2)*sin(k3)*sin(m1) + cos(k3)*cos(m1)*cos(m3)*sin(k4)*sin(m2) - cos(m3)*sin(k2)*sin(k3)*sin(k4)*sin(m1) - cos(k2)*sin(k4)*sin(m1)*sin(m2)*sin(m3) + cos(k2)*cos(k3)*cos(m2)*cos(m3)*sin(k4)*sin(m1)));
+
+end
+
+function J62 = GetOmiga50_Jacobo62(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J62 = ((cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))))*(cos(k4)*sin(k3)*sin(m2) + cos(m2)*sin(k4)*sin(m3) + cos(k3)*cos(m3)*sin(k4)*sin(m2)) - (sin(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) - cos(k4)*cos(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))))*(cos(k4)*cos(m2)*sin(m3) - sin(k3)*sin(k4)*sin(m2) + cos(k3)*cos(k4)*cos(m3)*sin(m2)) - (cos(m2)*cos(m3) - cos(k3)*sin(m2)*sin(m3))*(sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)))));
+
+end
+
+function J63 = GetOmiga50_Jacobo63(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J63 = (sin(k4)*sin(m3)*(cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))) - cos(k4)*sin(m3)*(sin(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) - cos(k4)*cos(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))) - cos(m3)*(sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)))));
+
+end
+
+function J64 = GetOmiga50_Jacobo64(k1,k2,k3,k4)
+    GlobalDeclarationCommon
+    J64 = (- sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))));
+
+end
+
+
+
+
+
+
+
+
+function JacoboMatrix = GetvOmiga50_JacoboMatrix(theta1,theta2,theta3,theta4)
+%这里有个简化时间的点，就是4-6行在theta1不变的情况下是不变的。
     k1 = DegToRad(theta1);
     k2 = DegToRad(theta2);
     k3 = DegToRad(theta3);
@@ -2127,10 +2222,23 @@ function JacoboMatrix = Getv50_JacoboMatrix(theta1,theta2,theta3,theta4)
     J32 = Getv50_Jacobo32(k1,k2,k3,k4);
     J33 = Getv50_Jacobo33(k1,k2,k3,k4);
     J34 = Getv50_Jacobo34(k1,k2,k3,k4);
-    JacoboMatrix=[J11,J12,J13,J14;J21,J22,J23,J24;J31,J32,J33,J34];
+    J41 = GetOmiga50_Jacobo41(k1,k2,k3,k4);
+    J42 = GetOmiga50_Jacobo42(k1,k2,k3,k4);
+    J43 = GetOmiga50_Jacobo43(k1,k2,k3,k4);
+    J44 = GetOmiga50_Jacobo44(k1,k2,k3,k4);
+    J51 = GetOmiga50_Jacobo51(k1,k2,k3,k4);
+    J52 = GetOmiga50_Jacobo52(k1,k2,k3,k4);
+    J53 = GetOmiga50_Jacobo53(k1,k2,k3,k4);
+    J54 = GetOmiga50_Jacobo54(k1,k2,k3,k4);
+    J61 = GetOmiga50_Jacobo61(k1,k2,k3,k4);
+    J62 = GetOmiga50_Jacobo62(k1,k2,k3,k4);
+    J63 = GetOmiga50_Jacobo63(k1,k2,k3,k4);
+    J64 = GetOmiga50_Jacobo64(k1,k2,k3,k4);
+    JacoboMatrix=[J11,J12,J13,J14;J21,J22,J23,J24;J31,J32,J33,J34;J41,J42,J43,J44;J51,J52,J53,J54;J61,J62,J63,J64];
 end
 
 function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
+   %20200807发现这个函数是不能用的
     GlobalDeclarationCommon
     vectorbe = EndPoint-BeginPoint;
     xn = vectorbe(1)/norm(vectorbe);
@@ -2150,7 +2258,7 @@ function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,Begi
 %     a21 = JacoboMatrix(2,1); 
     a22 = JacoboMatrix(2,2); a23 = JacoboMatrix(2,3); a24 = JacoboMatrix(2,4);
 %     a31 = JacoboMatrix(3,1); 
-%     a32 = JacoboMatrix(3,2); a33 = JacoboMatrix(3,3); a34 = JacoboMatrix(3,4);
+    a32 = JacoboMatrix(3,2); a33 = JacoboMatrix(3,3); a34 = JacoboMatrix(3,4);
 %     a32 = (z1-z0)/(x1-x0)*a12; a33 = (z1-z0)/(x1-x0)*a13; a34 = (z1-z0)/(x1-x0)*a14;
     
 
@@ -2171,10 +2279,78 @@ function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,Begi
     currentvtheta3Range(1) = currentvtheta3Range(1)*pi/180; currentvtheta3Range(2) = currentvtheta3Range(2)*pi/180;
     currentvtheta4Range(1) = currentvtheta4Range(1)*pi/180; currentvtheta4Range(2) = currentvtheta4Range(2)*pi/180;
     
-    vtheta4 = max(currentvtheta4Range);
+    currentvtheta2Range = Sortqujian(currentvtheta2Range);
+    currentvtheta3Range = Sortqujian(currentvtheta3Range);
+    currentvtheta4Range = Sortqujian(currentvtheta4Range);
+    
+    vtheta4FitableRange = [];
     
 %     vtheta2 = ((a13*a24 - a14*a23)/(a12*a23 - a13*a22))*vtheta4 + ((a23*xn - a13*yn)/(a12*a23 - a13*a22))*k;
 %     k = ((a12*a23 - a13*a22)/(a23*xn - a13*yn))*vtheta2 + (-(a13*a24 - a14*a23)/(a23*xn - a13*yn))*vtheta4;
+    k_xishu1 = ((a12*a23 - a13*a22)/(a23*xn - a13*yn));
+    k_xishu2 = (-(a13*a24 - a14*a23)/(a23*xn - a13*yn));
+    %     vtheta3 = (-(a12*a24 - a14*a22)/(a12*a23 - a13*a22))*vtheta4 + (-(a22*xn - a12*yn)/(a12*a23 - a13*a22))*k;
+%     k=(-(a12*a23 - a13*a22)/(a22*xn - a12*yn))*vtheta3 + (-(a12*a24 - a14*a22)/(a22*xn - a12*yn))*vtheta4;
+    k_xishu3 = (-(a12*a23 - a13*a22)/(a22*xn - a12*yn));
+    k_xishu4 = (-(a12*a24 - a14*a22)/(a22*xn - a12*yn));
+    
+    if (a23*xn - a13*yn)==0 || (a23*xn - a13*yn)==0 || (a22*xn - a12*yn)==0 || (a22*xn - a12*yn)==0
+        error('此时算法不能处理这种情况，还得在思考一下');
+    end
+
+    if k_xishu1>=0 && k_xishu3>=0
+        LA = currentvtheta2Range(1);
+        LB = currentvtheta2Range(2);
+        LC = currentvtheta3Range(1);
+        LD = currentvtheta3Range(2);
+    else
+        if k_xishu1>=0 && k_xishu3<0
+            LA = currentvtheta2Range(1);
+            LB = currentvtheta2Range(2);
+            LC = currentvtheta3Range(2);
+            LD = currentvtheta3Range(1);
+        else
+            if k_xishu1<0&&k_xishu3>=0
+                LA = currentvtheta2Range(2);
+                LB = currentvtheta2Range(1);
+                LC = currentvtheta3Range(1);
+                LD = currentvtheta3Range(2);
+            else
+                LA = currentvtheta2Range(2);
+                LB = currentvtheta2Range(1);
+                LC = currentvtheta3Range(2);
+                LD = currentvtheta3Range(1);
+            end
+        end
+    end
+    
+    if k_xishu4>k_xishu2
+%         tmp1 = [(k_xishu1*LB-k_xishu3*LC)/(k_xishu4-k_xishu2) currentvtheta4Range(2)];
+%         tmp2 = [currentvtheta4Range(1) (k_xishu1*LA-k_xishu3*LD)/(k_xishu4-k_xishu2)];
+        vtheta4FitableRange = [(k_xishu1*LA-k_xishu3*LD)/(k_xishu4-k_xishu2) (k_xishu1*LB-k_xishu3*LC)/(k_xishu4-k_xishu2)];
+    else
+        if k_xishu4<k_xishu2
+%             tmp1 = [currentvtheta4Range(1) (k_xishu1*LB-k_xishu3*LC)/(k_xishu4-k_xishu2)];
+%             tmp2 = [(k_xishu1*LA-k_xishu3*LD)/(k_xishu4-k_xishu2) currentvtheta4Range(2)];
+            vtheta4FitableRange = [(k_xishu1*LB-k_xishu3*LC)/(k_xishu4-k_xishu2) (k_xishu1*LA-k_xishu3*LD)/(k_xishu4-k_xishu2)];
+        else
+            if k_xishu1*LB-k_xishu3*LC<0 || k_xishu1*LA-k_xishu3*LD>0 %说明vtheta4的所有取值都不能使得k有解
+                error('vtheta4的所有取值都不能使得k有解,速度与加速度约束设置的问题');
+            else
+                %此时说明所有的vtheta4都能使得k有解
+                vtheta4FitableRange = currentvtheta4Range;
+            end
+        end
+    end
+    if vtheta4FitableRange(1)>vtheta4FitableRange(2)
+        error('可能逻辑有错');
+    end
+    vtheta4FitableRange = GetIntersection(currentvtheta4Range,vtheta4FitableRange);
+    if isempty(vtheta4FitableRange)==1
+        error('vtheta4的所有取值都不能使得k有解,速度与加速度约束设置的问题');
+    end
+    vtheta4 = max(vtheta4FitableRange);
+    
     tmp1 = ((a12*a23 - a13*a22)/(a23*xn - a13*yn))*currentvtheta2Range(1) + (-(a13*a24 - a14*a23)/(a23*xn - a13*yn))*vtheta4;
     tmp2 = ((a12*a23 - a13*a22)/(a23*xn - a13*yn))*currentvtheta2Range(2) + (-(a13*a24 - a14*a23)/(a23*xn - a13*yn))*vtheta4;
     if tmp2<0 && tmp1<0
@@ -2189,8 +2365,7 @@ function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,Begi
     end
     k_vtheta2Range = [min([tmp1,tmp2]) max([tmp1,tmp2])];
     
-%     vtheta3 = (-(a12*a24 - a14*a22)/(a12*a23 - a13*a22))*vtheta4 + (-(a22*xn - a12*yn)/(a12*a23 - a13*a22))*k;
-%     k=(-(a12*a23 - a13*a22)/(a22*xn - a12*yn))*vtheta3 + (-(a12*a24 - a14*a22)/(a22*xn - a12*yn))*vtheta4;
+
     tmp1 = (-(a12*a23 - a13*a22)/(a22*xn - a12*yn))*currentvtheta3Range(1) + (-(a12*a24 - a14*a22)/(a22*xn - a12*yn))*vtheta4;
     tmp2 = (-(a12*a23 - a13*a22)/(a22*xn - a12*yn))*currentvtheta3Range(2) + (-(a12*a24 - a14*a22)/(a22*xn - a12*yn))*vtheta4;
     if tmp2<0 && tmp1<0
@@ -2212,6 +2387,7 @@ function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,Begi
     
     
     %然后再根据k的取值范围，按一定规则取k的值，已知vtheta4，把vtheta2 vtheta3 解出来 
+    
     vtheta2L = ((a13*a24 - a14*a23)/(a12*a23 - a13*a22))*vtheta4 + ((a23*xn - a13*yn)/(a12*a23 - a13*a22))*k_Range(1);
     vtheta2U = ((a13*a24 - a14*a23)/(a12*a23 - a13*a22))*vtheta4 + ((a23*xn - a13*yn)/(a12*a23 - a13*a22))*k_Range(2);
     testrange = [min([vtheta2L vtheta2U]),max([vtheta2L vtheta2U])];
@@ -2227,6 +2403,7 @@ function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,Begi
     if norm(test-testrange)>0.001
         error('逻辑出错');
     end
+    %上边的这段代码是异常检测代码
     
     k_power = 1;
     k = k_Range(1) + k_power*(k_Range(2)-k_Range(1));
@@ -2234,9 +2411,15 @@ function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,Begi
     vtheta2 = ((a13*a24 - a14*a23)/(a12*a23 - a13*a22))*vtheta4 + ((a23*xn - a13*yn)/(a12*a23 - a13*a22))*k;
     vtheta3 = (-(a12*a24 - a14*a22)/(a12*a23 - a13*a22))*vtheta4 + (-(a22*xn - a12*yn)/(a12*a23 - a13*a22))*k;
     
-    vtheta2 = vtheta2*pi/180;
-    vtheta3 = vtheta3*pi/180;
-    vtheta4 = vtheta4*pi/180;
+    vxtmp = a12*vtheta2+a13*vtheta3+a14*vtheta4;
+    vytmp = a22*vtheta2+a23*vtheta3+a24*vtheta4;
+    vztmp = a32*vtheta2+a33*vtheta3+a34*vtheta4;
+    cross([vxtmp vytmp vztmp],[xn yn zn]) %这里也不行。。。。。
+    
+    
+    vtheta2 = vtheta2*180/pi;
+    vtheta3 = vtheta3*180/pi;
+    vtheta4 = vtheta4*180/pi;
     
 %     figure
 %     for vtheta2=currentvtheta2Range(1):(currentvtheta2Range(2)-currentvtheta2Range(1))/20:currentvtheta2Range(2)
@@ -2246,6 +2429,184 @@ function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,Begi
 %             hold on 
 %         end
 %     end
+end
+
+function [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTipVxyOmigay(JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
+ %用铲尺末端Vxy的速度和铲斗的角速度omigay为方程
+    GlobalDeclarationCommon
+    vectorbe = EndPoint-BeginPoint;
+    xn = vectorbe(1)/norm(vectorbe);
+    yn = vectorbe(2)/norm(vectorbe);
+    
+    zn = vectorbe(3)/norm(vectorbe);
+    x0 = BeginPoint(1);
+    y0 = BeginPoint(2);
+    z0 = BeginPoint(3);
+    
+    x1 = EndPoint(1);
+    y1 = EndPoint(2);
+    z1 = EndPoint(3);
+    
+    %     a11 = JacoboMatrix(1,1); 
+    a12 = JacoboMatrix(1,2); a13 = JacoboMatrix(1,3); a14 = JacoboMatrix(1,4);
+%     a21 = JacoboMatrix(2,1); 
+    a22 = JacoboMatrix(2,2); a23 = JacoboMatrix(2,3); a24 = JacoboMatrix(2,4);
+%     a31 = JacoboMatrix(3,1); 
+    a32 = JacoboMatrix(3,2); a33 = JacoboMatrix(3,3); a34 = JacoboMatrix(3,4);
+%     a32 = (z1-z0)/(x1-x0)*a12; a33 = (z1-z0)/(x1-x0)*a13; a34 = (z1-z0)/(x1-x0)*a14;
+    a42 = JacoboMatrix(4,2); a43 = JacoboMatrix(4,3); a44 = JacoboMatrix(4,4);
+    a52 = JacoboMatrix(5,2); a53 = JacoboMatrix(5,3); a54 = JacoboMatrix(5,4);
+    a62 = JacoboMatrix(6,2); a63 = JacoboMatrix(6,3); a64 = JacoboMatrix(6,4);
+    
+
+    currentvtheta2Range = [lastvtheta2-atheta2max*tinterval,lastvtheta2+atheta2max*tinterval];
+    currentvtheta2Range = GetIntersection(currentvtheta2Range,[-Vtheta2Max,Vtheta2Max]);
+    
+    currentvtheta3Range = [lastvtheta3-atheta3max*tinterval,lastvtheta3+atheta3max*tinterval];
+    currentvtheta3Range = GetIntersection(currentvtheta3Range,[-Vtheta3Max,Vtheta3Max]);
+    
+    currentvtheta4Range = [lastvtheta4-atheta4max*tinterval,lastvtheta4+atheta4max*tinterval];
+    currentvtheta4Range = GetIntersection(currentvtheta4Range,[-Vtheta4Max,Vtheta4Max]);
+    
+    if isempty(currentvtheta2Range)==1 || isempty(currentvtheta3Range)==1 || isempty(currentvtheta4Range)==1
+        error('程序出错了，不能保证速度的限制了');
+    end
+    
+    currentvtheta2Range(1) = currentvtheta2Range(1)*pi/180; currentvtheta2Range(2) = currentvtheta2Range(2)*pi/180;
+    currentvtheta3Range(1) = currentvtheta3Range(1)*pi/180; currentvtheta3Range(2) = currentvtheta3Range(2)*pi/180;
+    currentvtheta4Range(1) = currentvtheta4Range(1)*pi/180; currentvtheta4Range(2) = currentvtheta4Range(2)*pi/180;
+    
+    currentvtheta2Range = Sortqujian(currentvtheta2Range);
+    currentvtheta3Range = Sortqujian(currentvtheta3Range);
+    currentvtheta4Range = Sortqujian(currentvtheta4Range);
+    
+    omigayLimitRange = [-10,10]; %暂时先设置成这样！！！之后可能会改
+%     vtheta2 = ((a23*a54*xn - a24*a53*xn - a13*a54*yn + a14*a53*yn)/(a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52))*k + ((a13*a24 - a14*a23)/(a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52))*omigay;
+%     k = ((a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52)/(a23*a54*xn - a24*a53*xn - a13*a54*yn + a14*a53*yn))*vtheta2 + (-(a13*a24 - a14*a23)/(a23*a54*xn - a24*a53*xn - a13*a54*yn + a14*a53*yn))*omigay;
+    k_xishu1 = ((a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52)/(a23*a54*xn - a24*a53*xn - a13*a54*yn + a14*a53*yn));
+    k_xishu2 = (-(a13*a24 - a14*a23)/(a23*a54*xn - a24*a53*xn - a13*a54*yn + a14*a53*yn));
+    
+%     vtheta3 = (-(a22*a54*xn - a24*a52*xn - a12*a54*yn + a14*a52*yn)/(a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52))*k + (-(a12*a24 - a14*a22)/(a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52))*omigay;
+%     k = (-(a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52)/(a22*a54*xn - a24*a52*xn - a12*a54*yn + a14*a52*yn))*vtheta3 + (-(a12*a24 - a14*a22)/(a22*a54*xn - a24*a52*xn - a12*a54*yn + a14*a52*yn))*omigay;
+    k_xishu3 = (-(a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52)/(a22*a54*xn - a24*a52*xn - a12*a54*yn + a14*a52*yn));
+    k_xishu4 = (-(a12*a24 - a14*a22)/(a22*a54*xn - a24*a52*xn - a12*a54*yn + a14*a52*yn));
+    
+%     vtheta4 = ((a22*a53*xn - a23*a52*xn - a12*a53*yn + a13*a52*yn)/(a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52))*k + ((a12*a23 - a13*a22)/(a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52))*omigay;
+%     k = ((a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52)/(a22*a53*xn - a23*a52*xn - a12*a53*yn + a13*a52*yn))*vtheta4 + (-(a12*a23 - a13*a22)/(a22*a53*xn - a23*a52*xn - a12*a53*yn + a13*a52*yn))*omigay;
+    k_xishu5 = ((a12*a23*a54 - a12*a24*a53 - a13*a22*a54 + a13*a24*a52 + a14*a22*a53 - a14*a23*a52)/(a22*a53*xn - a23*a52*xn - a12*a53*yn + a13*a52*yn));
+    k_xishu6 = (-(a12*a23 - a13*a22)/(a22*a53*xn - a23*a52*xn - a12*a53*yn + a13*a52*yn));
+    
+    %必须得保证三个区间都交，下边这样的方法是有问题的 20200810开始解决！
+    if k_xishu1>=0 && k_xishu3>=0
+        LA = currentvtheta2Range(1);
+        LB = currentvtheta2Range(2);
+        LC = currentvtheta3Range(1);
+        LD = currentvtheta3Range(2);
+    else
+        if k_xishu1>=0 && k_xishu3<0
+            LA = currentvtheta2Range(1);
+            LB = currentvtheta2Range(2);
+            LC = currentvtheta3Range(2);
+            LD = currentvtheta3Range(1);
+        else
+            if k_xishu1<0&&k_xishu3>=0
+                LA = currentvtheta2Range(2);
+                LB = currentvtheta2Range(1);
+                LC = currentvtheta3Range(1);
+                LD = currentvtheta3Range(2);
+            else
+                LA = currentvtheta2Range(2);
+                LB = currentvtheta2Range(1);
+                LC = currentvtheta3Range(2);
+                LD = currentvtheta3Range(1);
+            end
+        end
+    end
+    
+    if k_xishu4>k_xishu2
+        omigayFitableRange1 = [(k_xishu1*LA-k_xishu3*LD)/(k_xishu4-k_xishu2) (k_xishu1*LB-k_xishu3*LC)/(k_xishu4-k_xishu2)];
+    else
+        if k_xishu4<k_xishu2
+            omigayFitableRange1 = [(k_xishu1*LB-k_xishu3*LC)/(k_xishu4-k_xishu2) (k_xishu1*LA-k_xishu3*LD)/(k_xishu4-k_xishu2)];
+        else
+            if k_xishu1*LB-k_xishu3*LC<0 || k_xishu1*LA-k_xishu3*LD>0 %说明omigay的所有取值都不能使得k有解
+                error('omigay的所有取值都不能使得k有解,速度与加速度约束设置的问题');
+            else
+                %此时说明所有的omigay都能使得k有解
+                omigayFitableRange1 = omigayLimitRange;
+            end
+        end
+    end
+    if omigayFitableRange1(1)>omigayFitableRange1(2)
+        error('可能逻辑有错');
+    end
+    omigayFitableRange1 = GetIntersection(omigayLimitRange,omigayFitableRange1);
+    if isempty(omigayFitableRange1)==1
+        error('omigay的所有取值都不能使得k有解,速度与加速度约束设置的问题');
+    end
+    
+    
+    
+    if k_xishu1>=0 && k_xishu5>=0
+        LA = currentvtheta2Range(1);
+        LB = currentvtheta2Range(2);
+        LC = currentvtheta4Range(1);
+        LD = currentvtheta4Range(2);
+    else
+        if k_xishu1>=0 && k_xishu5<0
+            LA = currentvtheta2Range(1);
+            LB = currentvtheta2Range(2);
+            LC = currentvtheta4Range(2);
+            LD = currentvtheta4Range(1);
+        else
+            if k_xishu1<0&&k_xishu5>=0
+                LA = currentvtheta2Range(2);
+                LB = currentvtheta2Range(1);
+                LC = currentvtheta4Range(1);
+                LD = currentvtheta4Range(2);
+            else
+                LA = currentvtheta2Range(2);
+                LB = currentvtheta2Range(1);
+                LC = currentvtheta4Range(2);
+                LD = currentvtheta4Range(1);
+            end
+        end
+    end
+    
+    if k_xishu6>k_xishu2
+        omigayFitableRange2 = [(k_xishu1*LA-k_xishu5*LD)/(k_xishu6-k_xishu2) (k_xishu1*LB-k_xishu5*LC)/(k_xishu6-k_xishu2)];
+    else
+        if k_xishu6<k_xishu2
+            omigayFitableRange2 = [(k_xishu1*LB-k_xishu5*LC)/(k_xishu6-k_xishu2) (k_xishu1*LA-k_xishu5*LD)/(k_xishu6-k_xishu2)];
+        else
+            if k_xishu1*LB-k_xishu5*LC<0 || k_xishu1*LA-k_xishu5*LD>0 %说明omigay的所有取值都不能使得k有解
+                error('omigay的所有取值都不能使得k有解,速度与加速度约束设置的问题');
+            else
+                %此时说明所有的omigay都能使得k有解
+                omigayFitableRange2 = omigayLimitRange;
+            end
+        end
+    end
+    if omigayFitableRange2(1)>omigayFitableRange2(2)
+        error('可能逻辑有错');
+    end
+    omigayFitableRange2 = GetIntersection(omigayLimitRange,omigayFitableRange2);
+    if isempty(omigayFitableRange2)==1
+        error('omigay的所有取值都不能使得k有解,速度与加速度约束设置的问题');
+    end
+    
+    omigayFitableRange = GetIntersection(omigayFitableRange1,omigayFitableRange2);
+end
+
+function Sortedqujian = Sortqujian(qujian)
+    if qujian(1)>qujian(2)
+        tmp = qujian(1);
+        qujian(1)=qujian(2);
+        qujian(2) = tmp;
+        Sortedqujian = qujian;
+    else
+        Sortedqujian = qujian;
+    end
 end
 
 % function Limitqujian2Rnage(qujian,LIMIT)
@@ -2321,16 +2682,26 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     GlobalDeclarationCommon
     CurrentPoint = BeginPoint;
     jointAngle = InverseKinematicsBucketTip(CurrentPoint',Begin_Bucket_WithGround);
+    figure
+    PlotTheta1234(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
+    hold on;
+    plot3(BeginPoint(1),BeginPoint(2),BeginPoint(3),'ro');
+    hold on ;
+    plot3(EndPoint(1),EndPoint(2),EndPoint(3),'ko');
     
     [Theta4Range,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[Begin_Bucket_WithGround Begin_Bucket_WithGround]);
     lastvtheta2 = 0;
     lastvtheta3 = 0;
     lastvtheta4 = 0;
     while norm(CurrentPoint-EndPoint)>1
-        JacoboMatrix = Getv50_JacoboMatrix(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
         
-        [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTip(JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max);
-%         k_Range=GetRangeOfv50_k(JacoboMatrix,BeginPoint,EndPoint,Vtheta2Max,Vtheta3Max,Vtheta4Max);
+        JacoboMatrix = GetvOmiga50_JacoboMatrix(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
+        
+        [vtheta2,vtheta3,vtheta4] = GetCurrentvthetaBucketTipVxyOmigay(JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max);
+        lastvtheta2 = vtheta2
+        lastvtheta3 = vtheta3
+        lastvtheta4 = vtheta4
+        %         k_Range=GetRangeOfv50_k(JacoboMatrix,BeginPoint,EndPoint,Vtheta2Max,Vtheta3Max,Vtheta4Max);
 %         [vtheta2,vtheta3,vtheta4]= Getv50k_2_vtheta(JacoboMatrix,BeginPoint,EndPoint,k_Range(2));
 %         vtheta2 = RadToDeg(vtheta2);
 %         vtheta3 = RadToDeg(vtheta3);
@@ -2341,9 +2712,18 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
         [~,pos2] = ForwardKinematics(jointAngle);
         CurrentPoint = pos2(1:3,4)';
         norm(CurrentPoint-EndPoint)
+%         PlotTheta1234(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
+        plot3(CurrentPoint(1),CurrentPoint(2),CurrentPoint(3),'.');
+        hold on
+        pause(0.1);
     end
     
 end
+
+%%
+
+
+%%
 
 function deg = RadToDeg(rad)
     deg = rad*180/pi;
@@ -2483,10 +2863,10 @@ function result = InverseKinematicsBucketTip(pos,ThetaBucketwithGround)
         result = [];
         return ; %表明无法求解
     end
-    figure
-    PlotTheta1234(theta123(1),theta123(2),theta123(3),Theta4{1});
-    hold on 
-    plot3(pos(1),pos(2),pos(3),'o');
+%     figure
+%     PlotTheta1234(theta123(1),theta123(2),theta123(3),Theta4{1});
+%     hold on 
+%     plot3(pos(1),pos(2),pos(3),'o');
     if flagsuccess==0
         if CheckInrange(theta123(1),theta1Range) && CheckInrange(theta123(2),theta2Range) && CheckInrange(theta123(3),theta3Range)
             error('程序逻辑出错');
