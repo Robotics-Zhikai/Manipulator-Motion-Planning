@@ -2555,30 +2555,27 @@ end
 function [vtheta2,vtheta3,vtheta4] = tmpname(CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
     GlobalDeclarationCommon
 
-%     currentvtheta2Range = [lastvtheta2-atheta2max*tinterval,lastvtheta2+atheta2max*tinterval];
-%     currentvtheta2Range = GetIntersection(currentvtheta2Range,[-Vtheta2Max,Vtheta2Max]);
-%     
-%     currentvtheta3Range = [lastvtheta3-atheta3max*tinterval,lastvtheta3+atheta3max*tinterval];
-%     currentvtheta3Range = GetIntersection(currentvtheta3Range,[-Vtheta3Max,Vtheta3Max]);
-%     
-%     currentvtheta4Range = [lastvtheta4-atheta4max*tinterval,lastvtheta4+atheta4max*tinterval];
-%     currentvtheta4Range = GetIntersection(currentvtheta4Range,[-Vtheta4Max,Vtheta4Max]);
-%     
-% %     if isempty(currentvtheta2Range)==1 || isempty(currentvtheta3Range)==1 || isempty(currentvtheta4Range)==1
-% %         error('程序出错了，不能保证速度的限制了');
-% %     end
-%     
-%     currentvtheta2Range(1) = currentvtheta2Range(1)*pi/180; currentvtheta2Range(2) = currentvtheta2Range(2)*pi/180;
-%     currentvtheta3Range(1) = currentvtheta3Range(1)*pi/180; currentvtheta3Range(2) = currentvtheta3Range(2)*pi/180;
-%     currentvtheta4Range(1) = currentvtheta4Range(1)*pi/180; currentvtheta4Range(2) = currentvtheta4Range(2)*pi/180;
-%     
-%     currentvtheta2Range = Sortqujian(currentvtheta2Range);
-%     currentvtheta3Range = Sortqujian(currentvtheta3Range);
-%     currentvtheta4Range = Sortqujian(currentvtheta4Range);
+    currentvtheta2Range = [lastvtheta2-atheta2max*tinterval,lastvtheta2+atheta2max*tinterval];
+    currentvtheta2Range = GetIntersection(currentvtheta2Range,[-Vtheta2Max,Vtheta2Max]);
+    
+    currentvtheta3Range = [lastvtheta3-atheta3max*tinterval,lastvtheta3+atheta3max*tinterval];
+    currentvtheta3Range = GetIntersection(currentvtheta3Range,[-Vtheta3Max,Vtheta3Max]);
+    
+    currentvtheta4Range = [lastvtheta4-atheta4max*tinterval,lastvtheta4+atheta4max*tinterval];
+    currentvtheta4Range = GetIntersection(currentvtheta4Range,[-Vtheta4Max,Vtheta4Max]);
+    
+    if isempty(currentvtheta2Range)==1 || isempty(currentvtheta3Range)==1 || isempty(currentvtheta4Range)==1
+        error('程序出错了，不能保证速度的限制了');
+    end
+    
+    currentvtheta2Range(1) = currentvtheta2Range(1)*pi/180; currentvtheta2Range(2) = currentvtheta2Range(2)*pi/180;
+    currentvtheta3Range(1) = currentvtheta3Range(1)*pi/180; currentvtheta3Range(2) = currentvtheta3Range(2)*pi/180;
+    currentvtheta4Range(1) = currentvtheta4Range(1)*pi/180; currentvtheta4Range(2) = currentvtheta4Range(2)*pi/180;
+    
+    currentvtheta2Range = Sortqujian(currentvtheta2Range);
+    currentvtheta3Range = Sortqujian(currentvtheta3Range);
+    currentvtheta4Range = Sortqujian(currentvtheta4Range);
 
-    currentvtheta2Range = [];
-    currentvtheta3Range = [];
-    currentvtheta4Range = [];
 %     [omigayFitableRangeA,k_xishuA] = GetCurrentvthetaBucketTipVxyOmigay(currentvtheta2Range,currentvtheta3Range,currentvtheta4Range,JacoboMatrix,BeginPoint,EndPoint);
     k_xishuB = Getk_xishuBucketTipVxzOmigay(CurrentPoint,JacoboMatrix,EndPoint);
     
@@ -2597,6 +2594,19 @@ function [vtheta2,vtheta3,vtheta4] = tmpname(CurrentPoint,JacoboMatrix,BeginPoin
     vtheta2 = k_xishuB(1)*kthistime+k_xishuB(2)*omigay;
     vtheta3 = k_xishuB(3)*kthistime+k_xishuB(4)*omigay;
     vtheta4 = k_xishuB(5)*kthistime+k_xishuB(6)*omigay; %计算几何算交集
+    
+    kt = 100;
+    Points2 = [0 currentvtheta2Range(1)/k_xishuB(2) 0;0 currentvtheta2Range(2)/k_xishuB(2) 0;kt (currentvtheta2Range(1)-k_xishuB(1)*kt)/k_xishuB(2) 0;kt (currentvtheta2Range(2)-k_xishuB(1)*kt)/k_xishuB(2) 0];
+    Points3 = [0 currentvtheta3Range(1)/k_xishuB(4) 0;0 currentvtheta3Range(2)/k_xishuB(4) 0;kt (currentvtheta3Range(1)-k_xishuB(3)*kt)/k_xishuB(4) 0;kt (currentvtheta3Range(2)-k_xishuB(3)*kt)/k_xishuB(4) 0];
+    Points4 = [0 currentvtheta4Range(1)/k_xishuB(6) 0;0 currentvtheta4Range(2)/k_xishuB(6) 0;kt (currentvtheta4Range(1)-k_xishuB(5)*kt)/k_xishuB(6) 0;kt (currentvtheta4Range(2)-k_xishuB(5)*kt)/k_xishuB(6) 0];
+
+    CommonPoints = GetConvexHullIntersection(Points2,Points3);
+    CommonPoints = GetConvexHullIntersection(CommonPoints,Points4); %20200814 找这个的bug
+    
+    
+    
+    
+    
 %     
 %     vtheta2 = vtheta2_;
 %     vtheta3 = vtheta3_;

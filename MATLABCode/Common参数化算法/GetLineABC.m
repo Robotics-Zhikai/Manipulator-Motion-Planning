@@ -1,4 +1,5 @@
 function [A,B,C] = GetLineABC(P1,P2)
+%Ax + By + C = 0
     X1 = P1(1); Y1 = P1(2); 
     X2 = P2(1); Y2 = P2(2); 
     A = Y2 - Y1;
