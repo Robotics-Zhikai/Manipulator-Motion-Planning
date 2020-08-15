@@ -4,7 +4,7 @@ function outPoints = PreSorting(Points,LTL)
     DeleteRepeatPoint = [];
 % 	vector <Point> DeleteRepeatPoint;
     for i=1:size(Points,1)
-        if norm(Points(i,:)-LTL)<0.001
+        if norm(Points(i,:)-LTL)==0
             continue;
         end
         DeleteRepeatPoint = [DeleteRepeatPoint;Points(i,:)];
@@ -21,6 +21,7 @@ function outPoints = PreSorting(Points,LTL)
             i = i + 1;
         end
         if (test == -1)
+            DeleteRepeatPoint(1,:) = [];
             outPoints = DeleteRepeatPoint;
             return;
         end

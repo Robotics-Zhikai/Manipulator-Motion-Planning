@@ -5,8 +5,9 @@ function YES = InConvexPolygonTest(Points,A)
 % //O(n)
 % //在内部return1 在边上 return0 在外部 return-1 Error return-2 
 % {
+    yuzhithis = 1e-5;
     if (size(Points,1) == 1)
-        if ( norm(A - Points(1,:))<0.001)
+        if ( norm(A - Points(1,:))<yuzhithis)
             YES = 0;
             return;
         else
@@ -15,8 +16,8 @@ function YES = InConvexPolygonTest(Points,A)
         end
     end
     if (size(Points,1) == 2)
-        if (norm(Points(1,:) - Points(2,:))<0.001)
-            if (norm(A - Points(1,:))<0.001)
+        if (norm(Points(1,:) - Points(2,:))<yuzhithis)
+            if (norm(A - Points(1,:))<yuzhithis)
                 YES = 0;
                 return;
             else
@@ -49,7 +50,7 @@ function YES = InConvexPolygonTest(Points,A)
 % 	vector<int> testresult;
     testresult = [];
     for i = 0:size(Points,1)-2
-        if (norm(Points(i+1,:) - Points(i + 2,:))<0.001)
+        if (norm(Points(i+1,:) - Points(i + 2,:))<yuzhithis)
 			continue;
         end
 		currentresult = ToLeftTest(Points(i+1,:), Points(i+2,:), A);

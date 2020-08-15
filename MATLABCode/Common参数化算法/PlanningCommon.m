@@ -55,7 +55,7 @@ EndAngelBucketWithGround =  -147.7394;
 
 
 
-BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150000,150000,150000,250,250,250);
+BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,150,150,25,25,25);
 % (BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
 
 
@@ -875,81 +875,6 @@ function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(k_xishu,CurrentPointTMP
     end
 end
 
-function out = GetIntersection(qujianA,qujianB)
-%20200717 写这个交集函数 输出的集合应该是有序的 从小到大
-    out = [];
-    if isempty(qujianA)==1 || isempty(qujianB)==1
-        out = [];
-        return;
-    end
-    if size(qujianA,2)==2 && qujianA(1)==qujianA(2)
-        qujianA = qujianA(1);
-    end
-    if size(qujianB,2)==2 && qujianB(1)==qujianB(2)
-        qujianB = qujianB(1);
-    end
-    if size(qujianA,2)==1 && size(qujianB,2)==1
-        if qujianA == qujianB
-            out = qujianA;
-        else
-            out = [];
-        end
-        return;
-    end
-    if size(qujianA,2)==2 && qujianA(1)>qujianA(2)
-        tmp = qujianA(1);
-        qujianA(1) = qujianA(2);
-        qujianA(2) = tmp;
-    end
-    if size(qujianB,2)==2 && qujianB(1)>qujianB(2)
-        tmp = qujianB(1);
-        qujianB(1) = qujianB(2);
-        qujianB(2) = tmp;
-    end
-    if size(qujianA,2)==1 && size(qujianB,2)==2
-        if qujianA(1)<qujianB(1) || qujianA(1)>qujianB(2)
-            out=[];
-        else
-            out = qujianA(1);
-        end
-        return;
-    end
-    if size(qujianA,2)==2 && size(qujianB,2)==1
-        if qujianB(1)<qujianA(1) || qujianB(1)>qujianA(2)
-            out=[];
-        else
-            out = qujianB(1);
-        end
-        return;
-    end
-    
-    if qujianA(2)<qujianB(1) || qujianA(1)>qujianB(2)
-        out = [];
-    else 
-        if qujianA(2)==qujianB(1)
-            out = qujianA(2);
-        end
-        if qujianA(1)==qujianB(2)
-            out = qujianB(2);
-        end
-        if isempty(out) == 0
-            return;
-        end
-        if qujianA(1)<=qujianB(1)
-            if qujianA(2)>qujianB(1) && qujianA(2)<=qujianB(2)
-                out = [qujianB(1) qujianA(2)];
-            else
-                out = [qujianB(1) qujianB(2)];
-            end
-        else
-            if qujianA(2)>qujianB(1) && qujianA(2)<=qujianB(2)
-                out = [qujianA(1) qujianA(2)];
-            else
-                out = [qujianA(1) qujianB(2)];
-            end
-        end
-    end
-end
 
 function [Vtheta2,Vtheta3] = LinearDiggingGetRangeRandomLine(Vmaxtheta2,Vmaxtheta3,theta1,theta2,theta3,StartPoint,EndPoint)
      %要保证输入Vmax是正值
@@ -2552,7 +2477,7 @@ function [x,y] = GetTwoLineJiaodian(k1,b1,k2,b2)
     y = k1*x+b1;
 end
 
-function [vtheta2,vtheta3,vtheta4] = tmpname(CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
+function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipvtheta234komiga(k_power,omiga_power,CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
     GlobalDeclarationCommon
 
     currentvtheta2Range = [lastvtheta2-atheta2max*tinterval,lastvtheta2+atheta2max*tinterval];
@@ -2579,43 +2504,73 @@ function [vtheta2,vtheta3,vtheta4] = tmpname(CurrentPoint,JacoboMatrix,BeginPoin
 %     [omigayFitableRangeA,k_xishuA] = GetCurrentvthetaBucketTipVxyOmigay(currentvtheta2Range,currentvtheta3Range,currentvtheta4Range,JacoboMatrix,BeginPoint,EndPoint);
     k_xishuB = Getk_xishuBucketTipVxzOmigay(CurrentPoint,JacoboMatrix,EndPoint);
     
-
     
-    
+    %求可解区域 横轴为k 纵轴为omigay 计算几何算交集
+    kt = 1000; %设置一个根本不可能达到的k值 k=1000时意味着一秒末端是10米每秒
+    ktdown = 0;
+    Points2 = [ktdown (currentvtheta2Range(1)-k_xishuB(1)*ktdown)/k_xishuB(2) 0;ktdown (currentvtheta2Range(2)-k_xishuB(1)*ktdown)/k_xishuB(2) 0;kt (currentvtheta2Range(1)-k_xishuB(1)*kt)/k_xishuB(2) 0;kt (currentvtheta2Range(2)-k_xishuB(1)*kt)/k_xishuB(2) 0];
+    Points3 = [ktdown (currentvtheta3Range(1)-k_xishuB(3)*ktdown)/k_xishuB(4) 0;ktdown (currentvtheta3Range(2)-k_xishuB(3)*ktdown)/k_xishuB(4) 0;kt (currentvtheta3Range(1)-k_xishuB(3)*kt)/k_xishuB(4) 0;kt (currentvtheta3Range(2)-k_xishuB(3)*kt)/k_xishuB(4) 0];
+    Points4 = [ktdown (currentvtheta4Range(1)-k_xishuB(5)*ktdown)/k_xishuB(6) 0;ktdown (currentvtheta4Range(2)-k_xishuB(5)*ktdown)/k_xishuB(6) 0;kt (currentvtheta4Range(1)-k_xishuB(5)*kt)/k_xishuB(6) 0;kt (currentvtheta4Range(2)-k_xishuB(5)*kt)/k_xishuB(6) 0];
 
-        
-    omigay = 0.005;
-    kthistime = 30;
+    CommonPoints1 = GetConvexHullIntersection(Points2,Points3);
+    CommonPoints = GetConvexHullIntersection(CommonPoints1,Points4); %20200814 找这个的bug
+    if isempty(CommonPoints)==1
+            figure
+    PlotConvexHull(Points2,'r.','r-');
+    PlotConvexHull(Points3,'g.','g-');
+    PlotConvexHull(Points4,'b.','b-');
+    PlotConvexHull(CommonPoints,'ko','k-');
+        error('设置的参数没办法得到满足约束的解');
+    end
+    
+%  figure
+%     PlotConvexHull(Points2,'r.','r-');
+%     PlotConvexHull(Points3,'g.','g-');
+%     PlotConvexHull(Points4,'b.','b-');
+%     PlotConvexHull(CommonPoints,'ko','k-');
+
+    %在可行解集区域中选择一可行解
+    kthistimeRange = [min(CommonPoints(:,1)),max(CommonPoints(:,1))];
+%     k_power = 0.9; 范围是(0-1)
+    kthistime = kthistimeRange(1) +k_power*(kthistimeRange(2)-kthistimeRange(1));
+    omigayRangetmp = GetConvexHullIntersection(CommonPoints,[kthistime 10 0;kthistime -10 0]);%给omigay一个绝对不可能取的值-10 10
+    if size(omigayRangetmp,1)==2
+        omigayRange = [min(omigayRangetmp(:,2)),max(omigayRangetmp(:,2))];
+    else
+        if size(omigayRangetmp,1)==1
+            omigayRange = omigayRangetmp(2);
+        else
+            error('程序逻辑出错');
+        end
+    end
+%     omiga_power = 0.9; 范围是(0-1)
+    if size(omigayRange,2)==1
+        omigay = omigayRange;
+    else
+        if abs(omigayRange(end))>=abs(omigayRange(1))
+            omigay = omigayRange(1) + (omigayRange(end)-omigayRange(1))*(omiga_power);
+        else
+            omigay = omigayRange(1) + (omigayRange(end)-omigayRange(1))*(1-omiga_power);
+        end
+    end
+    
 %     
 %     vtheta2 = k_xishuA(1)*kthistime+k_xishuA(2)*omigay;
 %     vtheta3 = k_xishuA(3)*kthistime+k_xishuA(4)*omigay;
 %     vtheta4 = k_xishuA(5)*kthistime+k_xishuA(6)*omigay;
 %     
+    %求解速度
     vtheta2 = k_xishuB(1)*kthistime+k_xishuB(2)*omigay;
     vtheta3 = k_xishuB(3)*kthistime+k_xishuB(4)*omigay;
     vtheta4 = k_xishuB(5)*kthistime+k_xishuB(6)*omigay; %计算几何算交集
     
-    kt = 100;
-    Points2 = [0 currentvtheta2Range(1)/k_xishuB(2) 0;0 currentvtheta2Range(2)/k_xishuB(2) 0;kt (currentvtheta2Range(1)-k_xishuB(1)*kt)/k_xishuB(2) 0;kt (currentvtheta2Range(2)-k_xishuB(1)*kt)/k_xishuB(2) 0];
-    Points3 = [0 currentvtheta3Range(1)/k_xishuB(4) 0;0 currentvtheta3Range(2)/k_xishuB(4) 0;kt (currentvtheta3Range(1)-k_xishuB(3)*kt)/k_xishuB(4) 0;kt (currentvtheta3Range(2)-k_xishuB(3)*kt)/k_xishuB(4) 0];
-    Points4 = [0 currentvtheta4Range(1)/k_xishuB(6) 0;0 currentvtheta4Range(2)/k_xishuB(6) 0;kt (currentvtheta4Range(1)-k_xishuB(5)*kt)/k_xishuB(6) 0;kt (currentvtheta4Range(2)-k_xishuB(5)*kt)/k_xishuB(6) 0];
-
-    CommonPoints = GetConvexHullIntersection(Points2,Points3);
-    CommonPoints = GetConvexHullIntersection(CommonPoints,Points4); %20200814 找这个的bug
+    if isempty(GetIntersection(currentvtheta2Range,vtheta2)) || isempty(GetIntersection(currentvtheta3Range,vtheta3)) || isempty(GetIntersection(currentvtheta4Range,vtheta4))
+        error('k与omigay设置的不对,导致速度超出了约束')
+    end
     
-    
-    
-    
-    
-%     
-%     vtheta2 = vtheta2_;
-%     vtheta3 = vtheta3_;
-%     vtheta4 = vtheta4_;
-%     
     vtheta2 = vtheta2*180/pi;
     vtheta3 = vtheta3*180/pi;
     vtheta4 = vtheta4*180/pi;
-
 end
 
 function [Intersection,YES] = GetThreeQujianIntersection(qujian1,qujian2,qujian3)
@@ -2736,23 +2691,84 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     hold on ;
     plot3(EndPoint(1),EndPoint(2),EndPoint(3),'ko');
     
-    [Theta4Range,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[Begin_Bucket_WithGround Begin_Bucket_WithGround]);
+    [DesiredTheta4Begin,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[Begin_Bucket_WithGround Begin_Bucket_WithGround]);
+    [DesiredTheta4End,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[End_Bucket_WithGround End_Bucket_WithGround]);
+    
     lastvtheta2 = 0;
     lastvtheta3 = 0;
     lastvtheta4 = 0;
-%     figure
+    figure
     i=1;
+    
+    SumerrorDistance = 0;
+    LasterrorDistance = 1;
+    kpdis = 0.99;
+    kidis = 0.092;
+    kddis = 0.018;
+    
+    SumerrorOmiga = 0;
+    LasterrorOmiga = 1;
+    kpOmiga = 0.99;
+    kiOmiga = 0.092;
+    kdOmiga = 0.018;
+    
     while norm(CurrentPoint-EndPoint)>1
-        
+%     while 1 
         JacoboMatrix = GetvOmiga50_JacoboMatrix(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
         
-        [vtheta2,vtheta3,vtheta4] = tmpname(CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max);
-        lastvtheta2 = vtheta2
-        lastvtheta3 = vtheta3
-        lastvtheta4 = vtheta4
-%         plot(i,vtheta4,'.');
-%             hold on 
-        i=i+1
+        errorDistance = norm(CurrentPoint-EndPoint)/norm(BeginPoint-EndPoint);
+        SumerrorDistance = SumerrorDistance + errorDistance*tinterval;
+        DerivaDistance = abs(LasterrorDistance-errorDistance)/tinterval;
+        LasterrorDistance = errorDistance;
+        k_power = kpdis * errorDistance + kidis * SumerrorDistance - kddis * DerivaDistance;
+        k_power = Limit2range(k_power,[0.00001,0.99999])
+        
+        errorOmiga = norm(jointAngle(4)-DesiredTheta4End{1})/norm(DesiredTheta4Begin{1}-DesiredTheta4End{1});
+        SumerrorOmiga = SumerrorOmiga + errorOmiga*tinterval;
+        DerivaOmiga = abs(LasterrorOmiga-errorOmiga)/tinterval;
+        LasterrorOmiga = errorOmiga;
+        omiga_power = kpOmiga * errorOmiga + kiOmiga * SumerrorOmiga - kdOmiga * DerivaOmiga;
+        omiga_power = Limit2range(omiga_power,[0.00001,0.99999])
+        
+%         omiga_power = 0.99;
+        
+        [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipvtheta234komiga(k_power,omiga_power,CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max);
+        lastvtheta2 = vtheta2;
+        lastvtheta3 = vtheta3;
+        lastvtheta4 = vtheta4;
+        
+        if (mod(i,2)==0)
+            subplot(171)
+            plot(i,vtheta2,'.');
+            title('vtheta2');
+            hold on 
+            subplot(172)
+            plot(i,vtheta3,'.');
+            title('vtheta3');
+            hold on 
+            subplot(173)
+            plot(i,vtheta4,'.');
+            title('vtheta4');
+            hold on 
+            subplot(174)
+            plot(i,kthistime,'.');
+            title('k');
+            hold on 
+            subplot(175)
+            plot(i,omigay,'.');
+            title('omigay');
+            hold on 
+            subplot(176)
+            plot(i,norm(CurrentPoint-EndPoint),'.');
+            title('Distance');
+            hold on 
+            subplot(177)
+            plot(i,norm(jointAngle(4)-DesiredTheta4End{1}),'.');
+            title('angle4');
+            hold on 
+            pause(0.1);
+        end
+        i=i+1;
         %         k_Range=GetRangeOfv50_k(JacoboMatrix,BeginPoint,EndPoint,Vtheta2Max,Vtheta3Max,Vtheta4Max);
 %         [vtheta2,vtheta3,vtheta4]= Getv50k_2_vtheta(JacoboMatrix,BeginPoint,EndPoint,k_Range(2));
 
@@ -2761,9 +2777,9 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
         jointAngle(4) = jointAngle(4) + vtheta4*tinterval;
         [~,pos2] = ForwardKinematics(jointAngle);
         CurrentPoint = pos2(1:3,4)';
-        norm(CurrentPoint-EndPoint)
+        
 %         CurrentPoint-BeginPoint
-        if (mod(i,100)==0)
+        if (mod(i,122222220)==0)
           
             PlotTheta1234(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
             hold on 
@@ -2771,7 +2787,7 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
             hold on
             pause(0.1);
         end
-%         pause(0.1);
+
     end
     
 end

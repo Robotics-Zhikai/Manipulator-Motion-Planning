@@ -1,7 +1,12 @@
 function CommonPoints = GetConvexHullIntersection(PointsA,PointsB)
 %得到输入的两个点集分别组成的凸包的交集的点集
+    if isempty(PointsA) || isempty(PointsB)
+        CommonPoints = [];
+        return;
+    end
     PointsA = GetCHGrahamScan(PointsA);
     PointsB = GetCHGrahamScan(PointsB);
+    
     
     CommonPoints = [];
     for i=1:size(PointsA,1)
@@ -42,7 +47,11 @@ function CommonPoints = GetConvexHullIntersection(PointsA,PointsB)
             CommonPoints = [CommonPoints;PointsA(i,:)];
         end
     end
-    
+    if isempty(CommonPoints)==1
+        CommonPoints = [];
+    else
+        CommonPoints = GetCHGrahamScan(CommonPoints);
+    end
 end
 
 

@@ -13,7 +13,7 @@ function result = CheckSorted(Points)
     Points1 = [Points1;Points(1,:)];
 % 	Points1.push_back(Points[0]);
     for i=2:size(Points,1)
-        if norm(Points(i,:)-Points(1,:))>0.001
+        if norm(Points(i,:)-Points(1,:))>1e-8
             Points1 = [Points1;Points(i,:)];
         end
     end
