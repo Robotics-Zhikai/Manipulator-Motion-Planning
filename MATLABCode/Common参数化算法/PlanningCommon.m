@@ -43,15 +43,20 @@ PlotSingularPointsOfBucketTip(110,PointA,PointB);
 % BeginAngelBucketWithGround = -73.0732;
 % EndAngelBucketWithGround = -109.0813;
 
-PointA = [-26.7292  510.7350    5.2501];
-PointB = [-10.9153  311.1723  -90.0148];
-BeginAngelBucketWithGround =  -77.0072;
-EndAngelBucketWithGround =  -147.7394;
+% PointA = [-26.7292  510.7350    5.2501];
+% PointB = [-10.9153  311.1723  -90.0148];
+% BeginAngelBucketWithGround =  -77.0072;
+% EndAngelBucketWithGround =  -147.7394;
 
 % PointA = [221.1790 -518.2097 -465.9836];
 % PointB = [229.1122 -535.6121 -244.8862];
 % BeginAngelBucketWithGround = -72.6830;
 % EndAngelBucketWithGround = -88.5871;
+
+PointA = [ -654.0350  -43.0796 -158.1275];
+PointB = [-484.1271  -28.3157 -335.6824];
+BeginAngelBucketWithGround = -93.2128;
+EndAngelBucketWithGround = -82.0676;
 
 
 
@@ -2416,10 +2421,12 @@ function [omigayFitableRange,k_xishu] = GetCurrentvthetaBucketTipVxyOmigay(curre
       
 end
 
-function k_xishu = Getk_xishuBucketTipVxzOmigay(CurrentPoint,JacoboMatrix,EndPoint)
+function k_xishu = Getk_xishuBucketTipVxzOmigay(CurrentPoint,JacoboMatrix,EndPoint,BeginPoint)
  %用铲尺末端Vxy的速度和铲斗的角速度omigay为方程
     GlobalDeclarationCommon
-    vectorbe = EndPoint-CurrentPoint;
+%     vectorbe = EndPoint-CurrentPoint;
+    vectorbe = EndPoint-BeginPoint;
+    
     xn = vectorbe(1)/norm(vectorbe);
     yn = vectorbe(2)/norm(vectorbe);
     zn = vectorbe(3)/norm(vectorbe);
@@ -2477,7 +2484,7 @@ function [x,y] = GetTwoLineJiaodian(k1,b1,k2,b2)
     y = k1*x+b1;
 end
 
-function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipvtheta234komiga(k_power,omiga_power,CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
+function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipvtheta234komiga(omigayDirection,k_power,omiga_power,CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
     GlobalDeclarationCommon
 
     currentvtheta2Range = [lastvtheta2-atheta2max*tinterval,lastvtheta2+atheta2max*tinterval];
@@ -2502,7 +2509,7 @@ function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipv
     currentvtheta4Range = Sortqujian(currentvtheta4Range);
 
 %     [omigayFitableRangeA,k_xishuA] = GetCurrentvthetaBucketTipVxyOmigay(currentvtheta2Range,currentvtheta3Range,currentvtheta4Range,JacoboMatrix,BeginPoint,EndPoint);
-    k_xishuB = Getk_xishuBucketTipVxzOmigay(CurrentPoint,JacoboMatrix,EndPoint);
+    k_xishuB = Getk_xishuBucketTipVxzOmigay(CurrentPoint,JacoboMatrix,EndPoint,BeginPoint);
     
     
     %求可解区域 横轴为k 纵轴为omigay 计算几何算交集
@@ -2513,15 +2520,7 @@ function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipv
     Points4 = [ktdown (currentvtheta4Range(1)-k_xishuB(5)*ktdown)/k_xishuB(6) 0;ktdown (currentvtheta4Range(2)-k_xishuB(5)*ktdown)/k_xishuB(6) 0;kt (currentvtheta4Range(1)-k_xishuB(5)*kt)/k_xishuB(6) 0;kt (currentvtheta4Range(2)-k_xishuB(5)*kt)/k_xishuB(6) 0];
 
     CommonPoints1 = GetConvexHullIntersection(Points2,Points3);
-    CommonPoints = GetConvexHullIntersection(CommonPoints1,Points4); %20200814 找这个的bug
-    if isempty(CommonPoints)==1
-            figure
-    PlotConvexHull(Points2,'r.','r-');
-    PlotConvexHull(Points3,'g.','g-');
-    PlotConvexHull(Points4,'b.','b-');
-    PlotConvexHull(CommonPoints,'ko','k-');
-        error('设置的参数没办法得到满足约束的解');
-    end
+    CommonPoints = GetConvexHullIntersection(CommonPoints1,Points4); %20200814 找这个的bug 
     
 %  figure
 %     PlotConvexHull(Points2,'r.','r-');
@@ -2529,6 +2528,29 @@ function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipv
 %     PlotConvexHull(Points4,'b.','b-');
 %     PlotConvexHull(CommonPoints,'ko','k-');
 
+    
+    if omigayDirection>0
+        ConstrainOmigay = [ktdown 0 0; ktdown 100 0;kt 0 0;kt 100 0];
+    else
+        if omigayDirection < 0
+            ConstrainOmigay = [ktdown 0 0; ktdown -100 0;kt 0 0;kt -100 0];
+        else
+            ConstrainOmigay = [ktdown 0 0; ktdown 0 0;kt 0 0;kt 0 0];
+        end
+    end
+    CommonPoints = GetConvexHullIntersection(CommonPoints,ConstrainOmigay);
+    
+%     [min(CommonPoints(:,2)),max(CommonPoints(:,2))]
+    if isempty(CommonPoints)==1
+            figure
+        PlotConvexHull(Points2,'r.','r-');
+        PlotConvexHull(Points3,'g.','g-');
+        PlotConvexHull(Points4,'b.','b-');
+        PlotConvexHull(CommonPoints,'ko','k-');
+        error('设置的参数没办法得到满足约束的解');
+    end
+    
+    
     %在可行解集区域中选择一可行解
     kthistimeRange = [min(CommonPoints(:,1)),max(CommonPoints(:,1))];
 %     k_power = 0.9; 范围是(0-1)
@@ -2553,7 +2575,7 @@ function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipv
             omigay = omigayRange(1) + (omigayRange(end)-omigayRange(1))*(1-omiga_power);
         end
     end
-    
+    omigayRange
 %     
 %     vtheta2 = k_xishuA(1)*kthistime+k_xishuA(2)*omigay;
 %     vtheta3 = k_xishuA(3)*kthistime+k_xishuA(4)*omigay;
@@ -2691,6 +2713,16 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     hold on ;
     plot3(EndPoint(1),EndPoint(2),EndPoint(3),'ko');
     
+    if End_Bucket_WithGround>Begin_Bucket_WithGround
+        omigayDirection = 1;
+    else
+        if End_Bucket_WithGround<Begin_Bucket_WithGround
+            omigayDirection = -1;
+        else
+            omigayDirection = 0;
+        end
+    end
+    
     [DesiredTheta4Begin,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[Begin_Bucket_WithGround Begin_Bucket_WithGround]);
     [DesiredTheta4End,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[End_Bucket_WithGround End_Bucket_WithGround]);
     
@@ -2704,15 +2736,21 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     LasterrorDistance = 1;
     kpdis = 0.99;
     kidis = 0.092;
+%     kidis = 0;
     kddis = 0.018;
     
     SumerrorOmiga = 0;
     LasterrorOmiga = 1;
-    kpOmiga = 0.99;
-    kiOmiga = 0.092;
-    kdOmiga = 0.018;
+    kpOmiga = 1.95;
+    kiOmiga = 0.0005;
+    kdOmiga = 0.868;
     
-    while norm(CurrentPoint-EndPoint)>1
+    DecelerationFLAG = 0;
+    DecelerationANGLEFLAG = 0;
+    
+    kthistime = 1000;
+    while kthistime>1 || abs(omigay)>0.05 || norm(CurrentPoint-EndPoint)>1 || norm(jointAngle(4)-DesiredTheta4End{1})>1
+%     while norm(CurrentPoint-EndPoint)>1 
 %     while 1 
         JacoboMatrix = GetvOmiga50_JacoboMatrix(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
         
@@ -2721,18 +2759,36 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
         DerivaDistance = abs(LasterrorDistance-errorDistance)/tinterval;
         LasterrorDistance = errorDistance;
         k_power = kpdis * errorDistance + kidis * SumerrorDistance - kddis * DerivaDistance;
-        k_power = Limit2range(k_power,[0.00001,0.99999])
+        k_power = Limit2range(k_power,[0.00001,0.99999]);
+%         k_power = 0.5;
+        if norm(CurrentPoint-EndPoint)<1 && DecelerationFLAG==0
+            DecelerationFLAG = 1;
+        end
+        if DecelerationFLAG == 1
+            k_power = 0.0001;
+        end
         
-        errorOmiga = norm(jointAngle(4)-DesiredTheta4End{1})/norm(DesiredTheta4Begin{1}-DesiredTheta4End{1});
+        AnglewithGround = GetAngleOfBucketWithGround(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
+        errorOmiga = norm(AnglewithGround-End_Bucket_WithGround)/norm(Begin_Bucket_WithGround-End_Bucket_WithGround);
         SumerrorOmiga = SumerrorOmiga + errorOmiga*tinterval;
         DerivaOmiga = abs(LasterrorOmiga-errorOmiga)/tinterval;
         LasterrorOmiga = errorOmiga;
         omiga_power = kpOmiga * errorOmiga + kiOmiga * SumerrorOmiga - kdOmiga * DerivaOmiga;
-        omiga_power = Limit2range(omiga_power,[0.00001,0.99999])
+        omiga_power = Limit2range(omiga_power,[0.00001,0.99999]);
+%         omiga_power= 0.2;
+%         omigayDirection = 0;
+        if norm(AnglewithGround-End_Bucket_WithGround)<1 && DecelerationANGLEFLAG==0
+            DecelerationANGLEFLAG =1;
+        end
+        if DecelerationANGLEFLAG == 1
+            omiga_power = 0.00001;
+%             omigayDirection = 0;
+        end
+        
         
 %         omiga_power = 0.99;
         
-        [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipvtheta234komiga(k_power,omiga_power,CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max);
+        [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipvtheta234komiga(omigayDirection,k_power,omiga_power,CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max);
         lastvtheta2 = vtheta2;
         lastvtheta3 = vtheta3;
         lastvtheta4 = vtheta4;
@@ -2763,29 +2819,40 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
             title('Distance');
             hold on 
             subplot(177)
-            plot(i,norm(jointAngle(4)-DesiredTheta4End{1}),'.');
+            plot(i,norm(AnglewithGround-End_Bucket_WithGround),'.');
             title('angle4');
             hold on 
             pause(0.1);
         end
         i=i+1;
+%         if i==245
+%             disp('');
+%         end
+
         %         k_Range=GetRangeOfv50_k(JacoboMatrix,BeginPoint,EndPoint,Vtheta2Max,Vtheta3Max,Vtheta4Max);
 %         [vtheta2,vtheta3,vtheta4]= Getv50k_2_vtheta(JacoboMatrix,BeginPoint,EndPoint,k_Range(2));
 
         jointAngle(2) = jointAngle(2) + vtheta2*tinterval;
         jointAngle(3) = jointAngle(3) + vtheta3*tinterval;
         jointAngle(4) = jointAngle(4) + vtheta4*tinterval;
+        
+        if isempty(GetIntersection(jointAngle(2),theta2Range)) ||  isempty(GetIntersection(jointAngle(3),theta3Range)) || isempty(GetIntersection(jointAngle(4),theta4Range))
+            error('设计的规划算法使得角度超出了物理限制')
+        end
+        
         [~,pos2] = ForwardKinematics(jointAngle);
         CurrentPoint = pos2(1:3,4)';
-        
+%         [Begin_Bucket_WithGround AnglewithGround End_Bucket_WithGround]
 %         CurrentPoint-BeginPoint
-        if (mod(i,122222220)==0)
+        if (mod(i,11111115)==0)
           
             PlotTheta1234(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
-            hold on 
-            plot3(CurrentPoint(1),CurrentPoint(2),CurrentPoint(3),'.');
-            hold on
+            hold off
+%             hold on 
+%             plot3(CurrentPoint(1),CurrentPoint(2),CurrentPoint(3),'.');
+%             hold on
             pause(0.1);
+%             clf
         end
 
     end

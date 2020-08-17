@@ -27,7 +27,7 @@ function CommonPoints = GetConvexHullIntersection(PointsA,PointsB)
             seg2 = Segment(PointsB(LASTB,:),PointsB(AFTERB,:));
             Points = GetTwoSegmentsIntersection(seg1,seg2);
             if size(Points,1)>1
-                disp('有两条线段重叠了！');
+%                 disp('有两条线段重叠了！');
                 
             end
             CommonPoints = [CommonPoints;Points];

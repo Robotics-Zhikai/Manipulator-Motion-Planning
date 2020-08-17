@@ -9,6 +9,10 @@ function outPoints = PreSorting(Points,LTL)
         end
         DeleteRepeatPoint = [DeleteRepeatPoint;Points(i,:)];
     end
+    
+    if isempty(DeleteRepeatPoint)==1
+        DeleteRepeatPoint = Points(2:end,:);
+    end
 
 	%//用n的时间复杂度判断是否已经是排序完成
     DeleteRepeatPoint = [LTL;DeleteRepeatPoint];
