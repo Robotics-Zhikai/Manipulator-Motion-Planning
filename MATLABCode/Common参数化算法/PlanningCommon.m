@@ -53,11 +53,15 @@ PlotSingularPointsOfBucketTip(110,PointA,PointB);
 % BeginAngelBucketWithGround = -72.6830;
 % EndAngelBucketWithGround = -88.5871;
 
-PointA = [ -654.0350  -43.0796 -158.1275];
-PointB = [-484.1271  -28.3157 -335.6824];
-BeginAngelBucketWithGround = -93.2128;
-EndAngelBucketWithGround = -82.0676;
+% PointA = [ -654.0350  -43.0796 -158.1275];
+% PointB = [-484.1271  -28.3157 -335.6824];
+% BeginAngelBucketWithGround = -93.2128;
+% EndAngelBucketWithGround = -82.0676;
 
+PointA = [681.1443  -21.8567  172.4116];
+PointB = [ 546.0533  -20.2392  -29.5721];
+BeginAngelBucketWithGround = -21.2425;
+EndAngelBucketWithGround =  -111.4202;
 
 
 BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,150,150,25,25,25);
@@ -2575,7 +2579,7 @@ function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipv
             omigay = omigayRange(1) + (omigayRange(end)-omigayRange(1))*(1-omiga_power);
         end
     end
-    omigayRange
+%     omigayRange
 %     
 %     vtheta2 = k_xishuA(1)*kthistime+k_xishuA(2)*omigay;
 %     vtheta3 = k_xishuA(3)*kthistime+k_xishuA(4)*omigay;
@@ -2712,6 +2716,7 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     plot3(BeginPoint(1),BeginPoint(2),BeginPoint(3),'ro');
     hold on ;
     plot3(EndPoint(1),EndPoint(2),EndPoint(3),'ko');
+    hold on;
     
     if End_Bucket_WithGround>Begin_Bucket_WithGround
         omigayDirection = 1;
@@ -2722,6 +2727,8 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
             omigayDirection = 0;
         end
     end
+    Lastchazhi = abs(Begin_Bucket_WithGround-End_Bucket_WithGround);
+
     
     [DesiredTheta4Begin,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[Begin_Bucket_WithGround Begin_Bucket_WithGround]);
     [DesiredTheta4End,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),[End_Bucket_WithGround End_Bucket_WithGround]);
@@ -2748,7 +2755,9 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     DecelerationFLAG = 0;
     DecelerationANGLEFLAG = 0;
     
-    kthistime = 1000;
+    kthistime = 2;
+    omigay = 0;
+%     while kthistime>1 || abs(omigay)>0.005 
     while kthistime>1 || abs(omigay)>0.05 || norm(CurrentPoint-EndPoint)>1 || norm(jointAngle(4)-DesiredTheta4End{1})>1
 %     while norm(CurrentPoint-EndPoint)>1 
 %     while 1 
@@ -2759,14 +2768,16 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
         DerivaDistance = abs(LasterrorDistance-errorDistance)/tinterval;
         LasterrorDistance = errorDistance;
         k_power = kpdis * errorDistance + kidis * SumerrorDistance - kddis * DerivaDistance;
-        k_power = Limit2range(k_power,[0.00001,0.99999]);
+        k_power = Limit2range(k_power,[0.00001,0.6]);
 %         k_power = 0.5;
-        if norm(CurrentPoint-EndPoint)<1 && DecelerationFLAG==0
+%         if norm(CurrentPoint-EndPoint)<(norm(BeginPoint-EndPoint)/3)*kthistime*tinterval && DecelerationFLAG==0
+        if norm(CurrentPoint-EndPoint)<kthistime*tinterval && DecelerationFLAG==0
             DecelerationFLAG = 1;
         end
         if DecelerationFLAG == 1
             k_power = 0.0001;
         end
+
         
         AnglewithGround = GetAngleOfBucketWithGround(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
         errorOmiga = norm(AnglewithGround-End_Bucket_WithGround)/norm(Begin_Bucket_WithGround-End_Bucket_WithGround);
@@ -2774,10 +2785,10 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
         DerivaOmiga = abs(LasterrorOmiga-errorOmiga)/tinterval;
         LasterrorOmiga = errorOmiga;
         omiga_power = kpOmiga * errorOmiga + kiOmiga * SumerrorOmiga - kdOmiga * DerivaOmiga;
-        omiga_power = Limit2range(omiga_power,[0.00001,0.99999]);
+        omiga_power = Limit2range(omiga_power,[0.00001,0.5]);
 %         omiga_power= 0.2;
 %         omigayDirection = 0;
-        if norm(AnglewithGround-End_Bucket_WithGround)<1 && DecelerationANGLEFLAG==0
+        if norm(AnglewithGround-End_Bucket_WithGround)<10*abs(omigay)*tinterval && DecelerationANGLEFLAG==0
             DecelerationANGLEFLAG =1;
         end
         if DecelerationANGLEFLAG == 1
@@ -2785,15 +2796,20 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
 %             omigayDirection = 0;
         end
         
-        
-%         omiga_power = 0.99;
-        
+        Nowchazhi = abs(AnglewithGround-End_Bucket_WithGround);
+        if Nowchazhi>Lastchazhi
+            omigayDirection = -omigayDirection;
+        end
+        Lastchazhi = Nowchazhi;
+%         k_power = 0.999;
+%         omigayDirection = 0;
+%         omiga_power = 0.999;
         [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipvtheta234komiga(omigayDirection,k_power,omiga_power,CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max);
         lastvtheta2 = vtheta2;
         lastvtheta3 = vtheta3;
         lastvtheta4 = vtheta4;
         
-        if (mod(i,2)==0)
+        if (mod(i,22222222222)==0)
             subplot(171)
             plot(i,vtheta2,'.');
             title('vtheta2');
@@ -2842,10 +2858,11 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
         
         [~,pos2] = ForwardKinematics(jointAngle);
         CurrentPoint = pos2(1:3,4)';
-%         [Begin_Bucket_WithGround AnglewithGround End_Bucket_WithGround]
+        [Begin_Bucket_WithGround AnglewithGround End_Bucket_WithGround]
+        norm(CurrentPoint-EndPoint)
 %         CurrentPoint-BeginPoint
-        if (mod(i,11111115)==0)
-          
+        if (mod(i,12222222220)==0)
+            
             PlotTheta1234(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
             hold off
 %             hold on 
