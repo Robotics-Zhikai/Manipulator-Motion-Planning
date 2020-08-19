@@ -58,12 +58,13 @@ PlotSingularPointsOfBucketTip(110,PointA,PointB);
 % BeginAngelBucketWithGround = -93.2128;
 % EndAngelBucketWithGround = -82.0676;
 
-PointA = [681.1443  -21.8567  172.4116];
-PointB = [ 546.0533  -20.2392  -29.5721];
-BeginAngelBucketWithGround = -21.2425;
-EndAngelBucketWithGround =  -111.4202;
+% PointA = [681.1443  -21.8567  172.4116];
+% PointB = [ 546.0533  -20.2392  -29.5721];
+% BeginAngelBucketWithGround = -21.2425;
+% EndAngelBucketWithGround =  -111.4202;
 
-
+Sequence = BucketTipLinearPlanningROBOTICSTOOL(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,150,150,25,25,25);
+%Ã÷Ìì·â×°¸ö¿ÉÊÓ»¯º¯Êý 20200820
 BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,150,150,25,25,25);
 % (BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
 
@@ -589,107 +590,6 @@ function valueout = Limit2range(value,range)
     end
 end
 
-function [jointAngle,reliable] = InverseKinematicsPos2Angle(position)%ÊäÈëÎªÁÐÏòÁ¿£¬Êä³öÎªÇ°Èý¸ö½ÇµÄ½Ç¶È ÎªºáÏòÁ¿
-    reliable = 1;
-    GlobalDeclarationCommon
-    ZERO = ZeroDefine;
-    M_PI = pi;
-%     nx, ny, nz;
-%     ox, oy, oz;
-% 	ax, ay, az;
-% 	px, py, pz;
-%     m[4], a[4], theta[4], d[4], tool;
-% 	mTempAngleOne[2];
-
-%     m(1) = 0.0*M_PI / 180.0;
-% 	m(2) = 90.0*M_PI / 180.0;
-% 	m(3) = 0.0*M_PI / 180.0;
-% 	m(4) = 0.0*M_PI / 180.0;
-    m(1) = m0;
-    m(2) = m1;
-    m(3) = m2;
-    m(4) = m3;
-    
-%     a(1) = 0.0;
-% 	a(2) = 12.0;
-% 	a(3) = 460.0;
-% 	a(4) = 210.9;
-    a(1) = a0;
-    a(2) = a1;
-    a(3) = a2;
-    a(4) = a3;
-    
-% 	tool = 123.5;
-    tool = tool;
-
-% 	d(1) = 57.9;
-% 	d(2) = 13.7;%//13.7
-% 	d(3) = 0.0;
-% 	d(4) = 0.0;
-    d(1) = d1;
-	d(2) = d2;%//13.7
-	d(3) = d3;
-	d(4) = d4;
-    
-%     nx = position(1,1);
-% 	ny = position(2,1);
-% 	nz = position(3,1);
-% 
-% 	ox = position(1,2);
-% 	oy = position(2,2);
-% 	oz = position(3,2);
-% 
-% 	ax = position(1,3);
-% 	ay = position(2,3);
-% 	az = position(3,3);
-
-	px = position(1);
-	py = position(2);
-	pz = position(3);
-
-    mTempAngleOne(1) = mathAtan2(py, px) - mathAtan2(-d(2), (px*px + py*py - d(2) * d(2))^(1/2));
-	mTempAngleOne(2) = mathAtan2(py, px) - mathAtan2(-d(2), -(px*px + py*py - d(2) * d(2))^(1/2));
-    
-	jointAngle(1) = mTempAngleOne(1);
-	Mtemp1 = (pow(cos(jointAngle(1))*px + sin(jointAngle(1))*py - a(2), 2) + pow(pz - d(1), 2) - pow(a(3), 2) - pow(a(4), 2)) / (2 * a(3) * a(4));
-    
-    if abs(Mtemp1)>1
-        reliable = 0;
-        return;
-        error('ËÆºõ³¬³öÁË¹¤×÷¿Õ¼ä£¬½á¹û²»¿ÉÐÅ');
-    end
-	jointAngle(3) = -abs(acos(Mtemp1));
-
-
-%     double tempm, tempn, tempTwo1;
-	tempm = px*cos(jointAngle(1)) + py*sin(jointAngle(1)) - a(2);
-	tempn = pz - d(1);
-    if abs(tempm*tempm + tempn*tempn) <= ZERO
-        disp("error!");
-        reliable = 0;
-        return;
-        error('error'); %zk20200730
-        return ;
-    else
-        tempTwo1 = ((a(3) + a(4) * cos(jointAngle(3)))*tempn - a(4) * sin(jointAngle(3))*tempm) / (tempm*tempm + tempn*tempn);
-    end
-	
-    if abs(tempTwo1)>1
-        reliable = 0;
-        return;
-        error('ËÆºõ³¬³öÁË¹¤×÷¿Õ¼ä£¬½á¹û²»¿ÉÐÅ');
-    end
-	jointAngle(2) = asin(tempTwo1);
-
-% 	double tempfour1, tempfour2;
-% 	tempfour1 = -(cos(jointAngle(1))*cos(jointAngle(2) + jointAngle(3))*ox + sin(jointAngle(1))*cos(jointAngle(2) + jointAngle(3))*oy + sin(jointAngle(2) + jointAngle(3))*oz);
-% 	tempfour2 = -cos(jointAngle(1))*sin(jointAngle(2) + jointAngle(3))*ox - sin(jointAngle(1))*sin(jointAngle(2) + jointAngle(3))*oy + cos(jointAngle(2) + jointAngle(3))*oz;
-% 	jointAngle(4) = mathAtan2(tempfour1, tempfour2);
-
-    for i=1:3
-        jointAngle(i) = jointAngle(i) * 180.0 / M_PI;
-    end
-end
 
 function [vtheta2,vtheta3] = GetCurrentvtheta3RandomLine(k_xishu,CurrentPointTMP,CurrentJointAngle,StartPoint,EndPoint,tinterval,vtheta2Last,vtheta3Last,Vmaxtheta2,Vmaxtheta3,amaxtheta2,amaxtheta3)%Êä³öÂú×ã¼ÓËÙ¶ÈÏÞÖÆµÄµ±Ç°Ê±¿ÌËÙ¶ÈÖµ
     GlobalDeclarationCommon
@@ -1630,226 +1530,10 @@ function [PointA,PointB] = RandGenratePointDirectLine(Range)%Éú³ÉÁ½¸öµã£¬ÕâÁ½¸öµ
     
 end
 
-function [PointA,BeginAngelBucketWithGround,PointB,EndAngelBucketWithGround,angleA,angleB] = RandGenratePointDirectLineBucketTip(Range) %²»Ò»¶¨Ö±Ïß¿É´ï
-    distance = 2*Range(2);
-    GlobalDeclarationCommon
-    while (distance<Range(1) || distance>Range(2))
-        
-        theta1 = RandGenerateNumber(theta1Range(1),theta1Range(2),1);
-
-        theta2A = RandGenerateNumber(theta2Range(1),theta2Range(2),1);
-        theta3A = RandGenerateNumber(theta3Range(1),theta3Range(2),1);
-        theta4A = RandGenerateNumber(theta4Range(1),theta4Range(2),1);
-
-        theta2B = RandGenerateNumber(theta2Range(1),theta2Range(2),1);
-        theta3B = RandGenerateNumber(theta3Range(1),theta3Range(2),1);
-        theta4B = RandGenerateNumber(theta4Range(1),theta4Range(2),1);
-
-        angleA = [theta1 theta2A theta3A theta4A];
-        angleB = [theta1 theta2B theta3B theta4B];
-        
-        [~,position1A] = ForwardKinematics(angleA);
-        [~,position1B] = ForwardKinematics(angleB);
-
-        PointA = position1A(1:3,4)';
-        PointB = position1B(1:3,4)';
-        
-        distance = norm(PointA-PointB);
-    end
-    BeginAngelBucketWithGround = GetAngleOfBucketWithGround(theta1,theta2A,theta3A,theta4A);
-    EndAngelBucketWithGround = GetAngleOfBucketWithGround(theta1,theta2B,theta3B,theta4B);
-end
 
 
-function RandNumber = RandGenerateNumber(a,b,Num)
-    RandNumber = a + (b-a).*rand(Num,1);
-end
 
-function Angle = GetAngleOfBucketWithGround(theta1,theta2,theta3,theta4) %µÃµ½ÔÚËÄ¸ö½ÇµÄÇé¿öÏÂ²ù¶·ÓëµØÃæµÄ¼Ð½Ç theta4ÊôÓÚ[-100,30]
-%Õâ¸öº¯Êý»¹Ã»ÓÐ²âÊÔ
-%×îÖÕAngleÓ¦¸ÃÊÇ-180 180 µÄ×Ó¼¯
-    GlobalDeclarationCommon
-    k1 = theta1*pi/180;
-    k2 = theta2*pi/180;
-%     k3 = theta3*pi/180;
-%     k4 = theta4*pi/180;
-    
-    [position1,position2] = ForwardKinematics([theta1,theta2,theta3,theta4]);
-    
-%     P3minusP2 = [230*cos(k1 + k2) + 230*cos(k1 - k2) ,230*sin(k1 - k2) + 230*sin(k1 + k2), 460*sin(k2)];%ÕâÊÇ¸ù¾Ý×ª»»¾ØÕó¼ÆËã³öÀ´µÄ T30-T20
-    P3minusP2(1,1) = a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1);
-    P3minusP2(1,2) = a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1));
-    P3minusP2(1,3) = a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1));
-    
-    XPositive = [P3minusP2(1:2) 0]; %ÒÔÕâ¸öÏòÁ¿ÎªxµÄÕý·½Ïò µ±²ù¶·ÓëÆä³Ê180¶È¸½½üÊ±£¬ÍÁ²»»áµôÏÂÀ´
-    XPositive = XPositive/norm(XPositive);
-    
-    BucketVector = position2(1:3,4)-position1(1:3,4);
-    BucketVector = BucketVector/norm(BucketVector);
-    %¶ÔÓÚ X ÔÚÇø¼ä [-1, 1] ÄÚµÄÊµÊýÖµ£¬acos(X) ·µ»ØÇø¼ä [0, ¦Ð] ÄÚµÄÖµ¡£
-    abstheta4 = acos(dot(BucketVector,XPositive));
-    if BucketVector(3)<0
-        Angle = -abstheta4;
-    else
-        Angle = abstheta4;
-    end
-    Angle = Angle*180/pi;
-    Angle = legalizAnger(Angle);
-end
 
-function BucketwithGroundRange = GetBucketwithGroundRange(theta1,theta2,theta3) 
-%µÃµ½theta4Âú×ã[-100,30]µÄÇ°ÌáÏÂÓëµØÃæµÄ¼Ð½Ç·¶Î§
-
-%     k1 = theta1*pi/180;
-%     k2 = theta2*pi/180;
-%     k3 = theta3*pi/180;
-%     BucketVector = [- (247*cos(k4)*(cos(k3)*( - cos(k1)*cos(k2)) + sin(k3)*(cos(k1)*sin(k2) )))/2 - (247*sin(k4)*(cos(k3)*(cos(k1)*sin(k2) ) - sin(k3)*( - cos(k1)*cos(k2))))/2;
-%    (247*cos(k4)*(cos(k3)*(  cos(k2)*sin(k1)) - sin(k3)*(sin(k1)*sin(k2) )))/2 - (247*sin(k4)*(cos(k3)*(sin(k1)*sin(k2) ) + sin(k3)*(  cos(k2)*sin(k1))))/2;
-%     (247*cos(k4)*(cos(k2)*sin(k3) + cos(k3)*sin(k2)))/2 - (247*sin(k4)*(sin(k2)*sin(k3) - cos(k2)*cos(k3)))/2];
-%     BucketVector = BucketVector/norm(BucketVector);
-%     
-%     P3minusP2 = [230*cos(k1 + k2) + 230*cos(k1 - k2) ,230*sin(k1 - k2) + 230*sin(k1 + k2), 460*sin(k2)];%ÕâÊÇ¸ù¾Ý×ª»»¾ØÕó¼ÆËã³öÀ´µÄ T30-T20
-%     XPositive = [P3minusP2(1:2) 0]; %ÒÔÕâ¸öÏòÁ¿ÎªxµÄÕý·½Ïò µ±²ù¶·ÓëÆä³Ê180¶È¸½½üÊ±£¬ÍÁ²»»áµôÏÂÀ´
-%     XPositive = XPositive/norm(XPositive);
-%     figure;
-%     StableRange = [-145 -179.99];
-    GlobalDeclarationCommon
-    
-    angletheta4withground = [GetAngleOfBucketWithGround(theta1,theta2,theta3,theta4Range(1)),GetAngleOfBucketWithGround(theta1,theta2,theta3,theta4Range(2))];
-    BucketwithGroundRange = angletheta4withground;
-%     if abs(angletheta4withground(1)-angletheta4withground(2))>180
-%         BucketwithGroundRange = [angletheta4withground(1) 360+angletheta4withground(2)];
-%         %µ±-100,30 ÖÐ¾­¹ý¼ÆËãÓÐ¾­¹ý180Ê±£¬»áÔì³É½Ç¶ÈÍ»±ä£¬´ËÊ±½«Æä½Ç¶È·¶Î§Åªµ½0-360£¬ÒÔ±£Ö¤Á¬Ðø
-%     end
-end
-
-function [Theta4Range,YES] = groundAngleRangeTOtheta4Range(theta1,theta2,theta3,WithGroundAngleRange) %WithGroundAngleRange£¬×óÎªÏÂÏÞ£¬ÓÒÎªÉÏÏÞ£¬ÄæÊ±ÕëÎªÕý£¬³¬³ö180¼´Ìø±äÎª¸º 
-    %YES Îª1 Ê±±íÃ÷ÔÚtheta4Âú×ã-100,30µÄÌõ¼þÏÂÄÜÕÒ³öÒ»·¶Î§À´£¬Âú×ãWithGroundAngleRange
-    %WithGroundAngleRangeµÄ½Ç¶ÈÌåÏµÒ²ÊÇ-180 180
-    GlobalDeclarationCommon
-    WithGroundAngleRange(1) = legalizAnger(WithGroundAngleRange(1));
-    WithGroundAngleRange(2) = legalizAnger(WithGroundAngleRange(2));
-    Theta4Range = [];
-    BucketwithGroundRange = GetBucketwithGroundRange(theta1,theta2,theta3);
-    SetBucketwithGroundRange = [];
-    if BucketwithGroundRange(2) > BucketwithGroundRange(1)
-        SetBucketwithGroundRange{1,1} = BucketwithGroundRange;
-    else
-        if BucketwithGroundRange(2) < BucketwithGroundRange(1)
-            theta4mid = theta4Range(1) + 180-BucketwithGroundRange(1); %Õâ²»¸ú130ÓÐ¹ØÏµ
-            SetBucketwithGroundRange{1,1} = [BucketwithGroundRange(1) 180];
-            SetBucketwithGroundRange{2,1} = [theta4Range(1) theta4mid];
-            SetBucketwithGroundRange{1,2} = [-179.99999 BucketwithGroundRange(2)];
-            SetBucketwithGroundRange{2,2} = [theta4mid theta4Range(2)];
-        end
-    end
-    
-    SetWithGroundAngleRange = [];
-    if WithGroundAngleRange(2) >= WithGroundAngleRange(1)
-        SetWithGroundAngleRange{1,1} = WithGroundAngleRange;
-    else
-        if WithGroundAngleRange(2) < WithGroundAngleRange(1)
-            SetWithGroundAngleRange{1,1} = [WithGroundAngleRange(1) 180];
-            SetWithGroundAngleRange{1,2} = [-179.99999 WithGroundAngleRange(2)];
-        end
-    end
-    
-    intersectionSet = [];
-    for i =1:size(SetBucketwithGroundRange,2)
-        for j = 1:size(SetWithGroundAngleRange,2)
-            intersecttmp = GetIntersection(SetBucketwithGroundRange{1,i},SetWithGroundAngleRange{1,j});
-            if isempty(intersecttmp) == 0
-                intersectionSet = [intersectionSet {intersecttmp}];
-            end
-        end
-    end
-    
-    if BucketwithGroundRange(2)>BucketwithGroundRange(1)
-        for i = 1:size(intersectionSet,2)
-            tmp = intersectionSet{1,i};
-%             -100 BucketwithGroundRange(1)
-%             30 BucketwithGroundRange(2)
-            if size(tmp,2)==2
-                Theta4Range =[Theta4Range {[theta4Range(2) - (BucketwithGroundRange(2)-tmp(1)), theta4Range(2) - (BucketwithGroundRange(2)-tmp(2))]}];
-            else
-                if size(tmp,2)==1
-                    Theta4Range =[Theta4Range {theta4Range(2) - (BucketwithGroundRange(2)-tmp(1))}];
-                else
-                    erro('Âß¼­³ö´í');
-                end
-            end
-        end 
-    else
-        if BucketwithGroundRange(2)<BucketwithGroundRange(1)
-            for i=1:size(SetBucketwithGroundRange,2)
-                for j = 1:size(intersectionSet,2)
-                    if isempty(GetIntersection(intersectionSet{1,j},SetBucketwithGroundRange{1,i}))==0
-                        if size(intersectionSet{1,j},2)==1
-                            Theta4Range = [Theta4Range {SetBucketwithGroundRange{2,i}(1)+intersectionSet{1,j}(1)-SetBucketwithGroundRange{1,i}(1)}];
-                        else
-                            Theta4Range = [Theta4Range {[SetBucketwithGroundRange{2,i}(1)+intersectionSet{1,j}(1)-SetBucketwithGroundRange{1,i}(1) , ...
-                            SetBucketwithGroundRange{2,i}(1)+intersectionSet{1,j}(2)-SetBucketwithGroundRange{1,i}(1)]}];
-                        end
-                    end
-                end
-            end
-%             Mode = 2;
-        end
-    end
-    
-    if isempty(Theta4Range)==1
-        YES = 0;
-    else
-        YES = 1;
-    end
-    if YES==1
-        for i=1:size(Theta4Range,2)
-            if CheckInrange(Theta4Range{i},theta4Range)==0
-                error('³ÌÐòÂß¼­³ö´í');
-            end
-        end
-    end
-
-    
-%     if isempty(Theta4Range)==1
-%         YES = 0;
-%     else
-%         if size(Theta4Range,2)==1
-%             Theta4Range = Theta4Range{1};
-%             if CheckInrange(Theta4Range,theta4Range)==0
-%                 error('³ÌÐòÂß¼­³ö´í');
-%             end
-%         else
-%             if size(Theta4Range,2)==2
-%                 if abs(Theta4Range{1}(2)-Theta4Range{2}(1))>0.001
-%                     if CheckInrange(Theta4Range{1},theta4Range)==0
-%                         error('³ÌÐòÂß¼­³ö´í');
-%                     end
-%                     if CheckInrange(Theta4Range{2},theta4Range)==0
-%                         error('³ÌÐòÂß¼­³ö´í');
-%                     end
-%                 else
-%                     Theta4Range = [Theta4Range{1}(1) Theta4Range{2}(2)];
-%                     if CheckInrange(Theta4Range,theta4Range)==0
-%                         error('³ÌÐòÂß¼­³ö´í');
-%                     end
-%                 end
-%             else
-% %                 error('³ÌÐòÂß¼­³ö´í£¡');
-%                 %»¹ÊÇÓÐ¿ÉÄÜ³öÏÖÈý¸öÇø¼äµÄ
-%                 for i=1:size(Theta4Range,2)
-%                     if CheckInrange(Theta4Range{i},theta4Range)==0
-%                         error('³ÌÐòÂß¼­³ö´í');
-%                     end
-%                 end
-%             end
-%         end
-%         YES = 1;
-%     end
-%     if isempty(Theta4Range)==1 && YES == 1
-%         error('³ÌÐòÂß¼­³ö´í');
-%     end
-end
 
 function resultPoints = RandGenerateStableBucketPoints(num,BucketStableRange) %ÔÚÓë»úÐµ±Û¹²ÃæµÄµÑ¿¨¶û×ø±êÏµÖÐËæ»úÉú³Énum¸öµã£¬Õânum¸öµã´æÔÚtheta4Ê¹µÃ²ù¶·ÖÐÄÚÈÝÎï²»Â©£¬ÄÚÈÝÎï²»Â©µÄÇ°ÌáÊÇ²ù¶·ÓëµØÃæµÄ¼Ð½ÇÊôÓÚBucketStableRange
     BucketStableRange(1) = legalizAnger(BucketStableRange(1));
@@ -1882,35 +1566,6 @@ function PointsSet = RandGeneratePointsCoplanarWithManipulator(theta1,num)%Éú³Én
     end
 end
 
-function YES = CheckInrange(qujian,range) %±ØÐëµÃÂú×ãqujian(2)>=qujian(1) range(2)>=range(1)
-    if size(range,2)<=1
-        error('range²»ÄÜÎª¿ÕÇø¼ä»òÕßµ¥¸öÊý');
-        YES = 0;
-        return;
-    end
-    if isempty(qujian)==1
-        error('qujian ²»ÄÜÎª¿ÕÇø¼ä');
-        YES = 0;
-        return;
-    end
-    if size(qujian,2)==1
-        if qujian>=range(1) && qujian <=range(2)
-            YES = 1;
-        else
-            YES = 0;
-        end
-    else
-        if qujian(2)<qujian(1) || range(2)<range(1)
-            YES = 0;
-        else
-            if qujian(1)>=range(1)-0.001 && qujian(2)<=range(2)+0.001 
-                YES = 1;
-            else
-                YES = 0;
-            end
-        end
-    end
-end
 
 function result = CombineTheta123AndTheta4(Theta123,Theta4) %Ê±¼ä¼ä¸ô±ØÐëÒ»ÖÂ
     if size(Theta123,2)>size(Theta4,2)
@@ -1942,46 +1597,6 @@ function result = CombineTheta123AndTheta4(Theta123,Theta4) %Ê±¼ä¼ä¸ô±ØÐëÒ»ÖÂ
     end
 end
 
-function PlotTheta1234(theta1,theta2,theta3,theta4)  %¿ÉÊÓ»¯Õû¸öÍÚ»ú±Û
-    GlobalDeclarationCommon
-    view([81,21])
-    P0 = [0,0,0];
-    k1 = theta1*pi/180;
-    k2 = theta2*pi/180;
-    k3 = theta3*pi/180;
-    k4 = theta4*pi/180;
-    
-    P1 = [a0,-d1*sin(m0),d1*cos(m0)];
-    P2 = [a0 + a1*cos(k1) + d2*sin(k1)*sin(m1),a1*cos(m0)*sin(k1) - d1*sin(m0) - d2*cos(m1)*sin(m0) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + d2*cos(m0)*cos(m1) + a1*sin(k1)*sin(m0) - d2*cos(k1)*sin(m0)*sin(m1)];
-    P3 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + a1*cos(k1) + d2*sin(k1)*sin(m1) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - d1*sin(m0) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
-    P4 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - d1*sin(m0) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
-    P5 = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + tool*(cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1))) + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - d1*sin(m0) - tool*(cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))) + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),tool*(cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))) + d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
-    Ptmp = [a0 + a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - (tool*(sin(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + cos(k4)*cos(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2))))/2 + (tool*(cos(k4)*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) - cos(m3)*sin(k4)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + sin(k4)*sin(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1))))/2 + a1*cos(k1) + a3*(cos(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) - cos(m2)*sin(k3)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + sin(k1)*sin(k3)*sin(m1)*sin(m2)) + d4*cos(m3)*(sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + cos(m2)*sin(k1)*sin(m1)) + d2*sin(k1)*sin(m1) + d4*sin(m3)*(sin(k3)*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + cos(k3)*cos(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) - cos(k3)*sin(k1)*sin(m1)*sin(m2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1),a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) - a3*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - d1*sin(m0) - (tool*(cos(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) - sin(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) + cos(m3)*sin(k4)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))))/2 + (tool*(sin(k4)*(sin(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - cos(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(m2)*sin(k3)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + cos(k4)*sin(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - cos(k4)*cos(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)))))/2 + d4*sin(m3)*(sin(k3)*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + cos(k3)*sin(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) + cos(k3)*cos(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1))) + a1*cos(m0)*sin(k1) - d2*cos(m1)*sin(m0) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) + d4*cos(m3)*(sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1))) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1)) - d2*cos(k1)*cos(m0)*sin(m1),(tool*(cos(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) - sin(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + cos(m3)*sin(k4)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))))/2 - (tool*(sin(k4)*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + cos(k4)*sin(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) - cos(k4)*cos(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)))))/2 + d1*cos(m0) + a3*(cos(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + sin(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) + cos(m2)*sin(k3)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + d2*cos(m0)*cos(m1) - d4*sin(m3)*(cos(k3)*sin(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - sin(k3)*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) + cos(k3)*cos(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0))) + a1*sin(k1)*sin(m0) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - d4*cos(m3)*(sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) - cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1))) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1)) - d2*cos(k1)*sin(m0)*sin(m1)];
-%     norm([P2(1) P2(2)])
-%     dot((P1(1:2)-P2(1:2))/norm(P1(1:2)-P2(1:2)),(P3(1:2)-P2(1:2))/norm(P3(1:2)-P2(1:2)))
-     %PtmpÊÇÓÃÀ´±ê¼Ç²ù¶··½ÏòµÄ
-
-    plot3(P0(1),P0(2),P0(3),'.','LineWidth',4);
-    hold on 
-    plot3(P1(1),P1(2),P1(3),'.','LineWidth',4);
-    hold on 
-    plot3(P2(1),P2(2),P2(3),'.','LineWidth',4);
-    hold on
-    plot3(P3(1),P3(2),P3(3),'.','LineWidth',4);
-    hold on
-    plot3(P4(1),P4(2),P4(3),'.','LineWidth',4);
-    hold on
-    plot3(Ptmp(1),Ptmp(2),Ptmp(3),'*');
-    hold on 
-    plot3(P5(1),P5(2),P5(3),'.','LineWidth',4);
-    hold on 
-
-    lineP = [P0;P1;P2;P3;P4;P5;Ptmp;P4];
-    plot3(lineP(:,1),lineP(:,2),lineP(:,3),'-');
-    hold on 
-    axis([-750 750 -750 750 -750 750]);
-    grid on
-end
 
 function VisualizationExcavator(AngleSequence)
     %AngleSequenceµÄµÚÒ»ÐÐ±ØÐëÊÇÊ±¼ä£¬µÚ2 3 4 5 ÐÐÊÇËÄ¸ö½Ç¶È
@@ -2466,27 +2081,27 @@ function k_xishu = Getk_xishuBucketTipVxzOmigay(CurrentPoint,JacoboMatrix,EndPoi
     k_xishu = [k_xishu1,k_xishu2,k_xishu3,k_xishu4,k_xishu5,k_xishu6];
 end
 
-function k_FitableRange = GetkRangeFromOmigay(omigay,k_xishu,currentvtheta2Range,currentvtheta3Range,currentvtheta4Range)
-    
+% function k_FitableRange = GetkRangeFromOmigay(omigay,k_xishu,currentvtheta2Range,currentvtheta3Range,currentvtheta4Range)
+%     
+% 
+%     ktmp1 = [k_xishu(1)*currentvtheta2Range(1)+k_xishu(2)*omigay k_xishu(1)*currentvtheta2Range(2)+k_xishu(2)*omigay];
+%     ktmp2 = [k_xishu(3)*currentvtheta3Range(1)+k_xishu(4)*omigay k_xishu(3)*currentvtheta3Range(2)+k_xishu(4)*omigay];
+%     ktmp3 = [k_xishu(5)*currentvtheta4Range(1)+k_xishu(6)*omigay k_xishu(5)*currentvtheta4Range(2)+k_xishu(6)*omigay];
+%     
+%     k_FitableRange = GetThreeQujianIntersection(ktmp1,ktmp2,ktmp3);
+%     
+%     if isempty(k_FitableRange)==1
+%         error('³ÌÐòÂß¼­³ö´í,Èç¹ûµ½ÁËÕâÒ»²½£¬¿Ï¶¨ÊÇ¾­¹ýÉÏÒ»²½µÄ¼ìÑé£¬ÄÜ¹»ÕÒ³öÒ»Çø¼äµÄ£¡');
+%     end
+% end
 
-    ktmp1 = [k_xishu(1)*currentvtheta2Range(1)+k_xishu(2)*omigay k_xishu(1)*currentvtheta2Range(2)+k_xishu(2)*omigay];
-    ktmp2 = [k_xishu(3)*currentvtheta3Range(1)+k_xishu(4)*omigay k_xishu(3)*currentvtheta3Range(2)+k_xishu(4)*omigay];
-    ktmp3 = [k_xishu(5)*currentvtheta4Range(1)+k_xishu(6)*omigay k_xishu(5)*currentvtheta4Range(2)+k_xishu(6)*omigay];
-    
-    k_FitableRange = GetThreeQujianIntersection(ktmp1,ktmp2,ktmp3);
-    
-    if isempty(k_FitableRange)==1
-        error('³ÌÐòÂß¼­³ö´í,Èç¹ûµ½ÁËÕâÒ»²½£¬¿Ï¶¨ÊÇ¾­¹ýÉÏÒ»²½µÄ¼ìÑé£¬ÄÜ¹»ÕÒ³öÒ»Çø¼äµÄ£¡');
-    end
-end
-
-function [x,y] = GetTwoLineJiaodian(k1,b1,k2,b2)
-    if k1==k2
-        error('ÓÐÎÞÇî¶à×é½»µã»òÎÞ½»µã');
-    end
-    x = (b2-b1)/(k1-k2);
-    y = k1*x+b1;
-end
+% function [x,y] = GetTwoLineJiaodian(k1,b1,k2,b2)
+%     if k1==k2
+%         error('ÓÐÎÞÇî¶à×é½»µã»òÎÞ½»µã');
+%     end
+%     x = (b2-b1)/(k1-k2);
+%     y = k1*x+b1;
+% end
 
 function [vtheta2,vtheta3,vtheta4,kthistime,omigay] = GetCurrentvthetaBucketTipvtheta234komiga(omigayDirection,k_power,omiga_power,CurrentPoint,JacoboMatrix,BeginPoint,EndPoint,lastvtheta2,lastvtheta3,lastvtheta4,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
     GlobalDeclarationCommon
@@ -2852,9 +2467,10 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
         jointAngle(3) = jointAngle(3) + vtheta3*tinterval;
         jointAngle(4) = jointAngle(4) + vtheta4*tinterval;
         
-        if isempty(GetIntersection(jointAngle(2),theta2Range)) ||  isempty(GetIntersection(jointAngle(3),theta3Range)) || isempty(GetIntersection(jointAngle(4),theta4Range))
+        if IsAnglesInLimitRange(jointAngle)==0
             error('Éè¼ÆµÄ¹æ»®Ëã·¨Ê¹µÃ½Ç¶È³¬³öÁËÎïÀíÏÞÖÆ')
         end
+
         
         [~,pos2] = ForwardKinematics(jointAngle);
         CurrentPoint = pos2(1:3,4)';
@@ -2864,7 +2480,7 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
         if (mod(i,12222222220)==0)
             
             PlotTheta1234(jointAngle(1),jointAngle(2),jointAngle(3),jointAngle(4));
-            hold off
+            
 %             hold on 
 %             plot3(CurrentPoint(1),CurrentPoint(2),CurrentPoint(3),'.');
 %             hold on
@@ -2876,6 +2492,126 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     
 end
 
+function Sequence = BucketTipLinearPlanningROBOTICSTOOL(BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
+    GlobalDeclarationCommon
+    result1 = InverseKinematicsBucketTip(BeginPoint',Begin_Bucket_WithGround) ;
+    result2 = InverseKinematicsBucketTip(EndPoint',End_Bucket_WithGround) ;
+    [~,Matrixbegin] = ForwardKinematics(result1);
+    [~,Matrixend] = ForwardKinematics(result2);
+
+    Tsequence = ctraj(Matrixbegin,Matrixend,200);
+    posStore = [];
+    jointangleSeq = [];
+    for i=1:size(Tsequence,3)
+        tform = Tsequence(:,:,i);
+        jointangle = InverseKinematics(tform);
+        
+        if IsAnglesInLimitRange(jointangle) == 0
+            error('Éè¼ÆµÄ¹æ»®Ëã·¨Ê¹µÃ½Ç¶È³¬³öÁËÎïÀíÏÞÖÆ')
+        end
+        posStore = [posStore;tform(1:3,4)'];
+        jointangleSeq(i,:) = jointangle;
+    end
+    
+    
+    djointangleSeq = [0 2*Vtheta2Max 2*Vtheta3Max 2*Vtheta4Max];
+    ddjointangleSeq = [0 2*atheta2max 2*atheta3max 2*atheta4max];
+    Leftbeishu = 0;
+    Rightbeishu = 4000; %ÕâÒâÎ¶×Å40Ãë×ß×î¶à8cm Ò»Ãë2mm »ù±¾¿ÉÒÔÈÏ¶¨ÊÇ¾²Ö¹µÄÁË
+    timesBEISHU = (Leftbeishu+Rightbeishu)/2;
+    FLAGWHILE = 0;
+    while FLAGWHILE<2
+        djointangleSeq = [];
+        for i=1:size(jointangleSeq,1)-1
+            djointangleSeq(i,:) = (jointangleSeq(i+1,:)-jointangleSeq(i,:))/(timesBEISHU*tinterval);
+        end
+        ddjointangleSeq=[];
+        for i=1:size(djointangleSeq,1)-1
+            ddjointangleSeq(i,:) = (djointangleSeq(i+1,:)-djointangleSeq(i,:))/(timesBEISHU*tinterval);
+        end
+        dposStore = [];
+        for i=1:size(posStore,1)-1
+            dposStore(i,:) = norm(posStore(i+1,:)-posStore(i,:))/(timesBEISHU*tinterval);
+        end
+        ddposStore = [];
+        for i=1:size(dposStore,1)-1
+            ddposStore(i,:) = (dposStore(i+1,:)-dposStore(i,:))/(timesBEISHU*tinterval);
+        end
+        
+        if Rightbeishu-Leftbeishu<=0.1 %±íÃ÷¶þ·Ö·¨¾«¶Èµ½0.1 ×îºóµÃµ½timesBEISHUµÄÁÙ½çÈ¡Öµ
+            FLAGWHILE = FLAGWHILE+1;
+            timesBEISHU = Rightbeishu;
+        else
+            if max(abs(djointangleSeq(:,2)))>Vtheta2Max==1 || max(abs(djointangleSeq(:,3)))>Vtheta3Max==1 || max(abs(djointangleSeq(:,4)))>Vtheta4Max==1 ...
+                || max(abs(ddjointangleSeq(:,2)))>atheta2max==1||max(abs(ddjointangleSeq(:,3)))>atheta3max==1||max(abs(ddjointangleSeq(:,4)))>atheta4max==1
+                Leftbeishu = timesBEISHU;
+            else
+                Rightbeishu = timesBEISHU;
+            end
+            timesBEISHU = Leftbeishu + (Rightbeishu-Leftbeishu)/2;
+        end
+    end
+    
+    Sequence = []; %×îÖÕ·µ»Ø´øÊ±¼ä´ÁµÄ¸÷½Ç¶È
+    for i=1:size(jointangleSeq,1)
+        timethis = (i-1)*(timesBEISHU*tinterval);
+        Sequence(:,i) = [timethis;jointangleSeq(i,:)'];
+    end
+    
+    degq = jointangleSeq;
+    degdq = djointangleSeq;
+    degddq = ddjointangleSeq;
+    figure
+    subplot(531)
+    plot(1:size(degdq,1),degdq(:,2),'-');
+    title('vtheta2')
+    subplot(532)
+    plot(1:size(degdq,1),degdq(:,3),'-');
+    title('vtheta3')
+    subplot(533)
+    plot(1:size(degdq,1),degdq(:,4),'-');
+    title('vtheta4')
+
+    subplot(534)
+    plot(1:size(degddq,1),degddq(:,2),'-');
+    title('atheta2')
+    subplot(535)
+    plot(1:size(degddq,1),degddq(:,3),'-');
+    title('atheta3')
+    subplot(536)
+    plot(1:size(degddq,1),degddq(:,4),'-');
+    title('atheta4')
+
+    subplot(537)
+    plot(1:size(degq,1),degq(:,2),'-');
+    title('theta2')
+    subplot(538)
+    plot(1:size(degq,1),degq(:,3),'-');
+    title('theta3')
+    subplot(539)
+    plot(1:size(degq,1),degq(:,4),'-');
+    title('theta4')
+
+    subplot(5,3,10)
+    plot(1:size(dposStore,1),dposStore,'-');
+    title('v')
+
+    subplot(5,3,11)
+    plot(1:size(ddposStore,1),ddposStore,'-');
+    title('a')
+
+    subplot(5,3,12)
+    plot(posStore(:,1),posStore(:,2),'-');
+    title('xy')
+
+    subplot(5,3,13)
+    plot(posStore(:,1),posStore(:,3),'-');
+    title('xz')
+
+    subplot(5,3,14)
+    plot(posStore(:,2),posStore(:,3),'-');
+    title('yz')
+end
 %%
 
 
@@ -2889,149 +2625,7 @@ function rad = DegToRad(deg)
     rad = deg*pi/180;
 end
 
-function jointAngle = InverseKinematics(position)
-    ZERO = 10^-6;
-    M_PI = pi;
-%     nx, ny, nz;
-%     ox, oy, oz;
-% 	ax, ay, az;
-% 	px, py, pz;
-%     m[4], a[4], theta[4], d[4], tool;
-% 	mTempAngleOne[2];
-    m(1) = 0.0*M_PI / 180.0;
-	m(2) = 90.0*M_PI / 180.0;
-	m(3) = 0.0*M_PI / 180.0;
-	m(4) = 0.0*M_PI / 180.0;
-    
-    a(1) = 0.0;
-	a(2) = 12.0;
-	a(3) = 460.0;
-	a(4) = 210.9;
-	tool = 123.5;
 
-	d(1) = 57.9;
-	d(2) = 13.7;%//13.7
-	d(3) = 0.0;
-	d(4) = 0.0;
-    
-    nx = position(1,1);
-	ny = position(2,1);
-	nz = position(3,1);
-
-	ox = position(1,2);
-	oy = position(2,2);
-	oz = position(3,2);
-
-	ax = position(1,3);
-	ay = position(2,3);
-	az = position(3,3);
-
-	px = position(1,4);
-	py = position(2,4);
-	pz = position(3,4);
-
-    mTempAngleOne(1) = mathAtan2(py, px) - mathAtan2(-d(2), (px*px + py*py - d(2) * d(2))^(1/2));
-	mTempAngleOne(2) = mathAtan2(py, px) - mathAtan2(-d(2), -(px*px + py*py - d(2) * d(2))^(1/2));
-    
-	jointAngle(1) = mTempAngleOne(1);
-	Mtemp1 = (pow(cos(jointAngle(1))*px + sin(jointAngle(1))*py - a(2), 2) + pow(pz - d(1), 2) - pow(a(3), 2) - pow(a(4), 2)) / (2 * a(3) * a(4));
-    
-    if abs(Mtemp1)>1
-        error('ËÆºõ³¬³öÁË¹¤×÷¿Õ¼ä£¬½á¹û²»¿ÉÐÅ');
-    end
-	jointAngle(3) = -abs(acos(Mtemp1));
-
-
-%     double tempm, tempn, tempTwo1;
-	tempm = px*cos(jointAngle(1)) + py*sin(jointAngle(1)) - a(2);
-	tempn = pz - d(1);
-    if abs(tempm*tempm + tempn*tempn) <= ZERO
-        disp("error!");
-        return ;
-    else
-        tempTwo1 = ((a(3) + a(4) * cos(jointAngle(3)))*tempn - a(4) * sin(jointAngle(3))*tempm) / (tempm*tempm + tempn*tempn);
-    end
-    if abs(tempTwo1)>1
-        error('ËÆºõ³¬³öÁË¹¤×÷¿Õ¼ä£¬½á¹û²»¿ÉÐÅ');
-    end
-	jointAngle(2) = asin(tempTwo1);
-
-% 	double tempfour1, tempfour2;
-	tempfour1 = -(cos(jointAngle(1))*cos(jointAngle(2) + jointAngle(3))*ox + sin(jointAngle(1))*cos(jointAngle(2) + jointAngle(3))*oy + sin(jointAngle(2) + jointAngle(3))*oz);
-	tempfour2 = -cos(jointAngle(1))*sin(jointAngle(2) + jointAngle(3))*ox - sin(jointAngle(1))*sin(jointAngle(2) + jointAngle(3))*oy + cos(jointAngle(2) + jointAngle(3))*oz;
-	jointAngle(4) = mathAtan2(tempfour1, tempfour2);
-
-    for i=1:4
-        jointAngle(i) = jointAngle(i) * 180.0 / M_PI;
-    end
-end
-
-function result = InverseKinematicsBucketTip(pos,ThetaBucketwithGround) 
-%ÊäÈëÎª²ù¶·³Ý¼âµÄÎ»ÖÃºÍ²ù¶·ÓëµØÃæµÄ¼Ð½Ç£¬Êä³öÎªtheta1 theta2 theta3 theta4
-%20200804ÐèÒªÐ´
-    ThetaBucketwithGround = legalizAnger(ThetaBucketwithGround);
-    pos = pos';
-    GlobalDeclarationCommon
-%     qiedian = GetQiedianOfCircle([0,0],[pos(1),pos(2)],d2);
-    gedian = GetGedianOfcircle([pos(1),pos(2)]);
-    if isempty(gedian)==0
-%         qiedian = qiedian(1,:);
-    else
-        erorr('Âß¼­³ö´í');
-    end
-    
-    flagsuccess = 0;
-    countNotReliable = 0;
-    countNotFitable = 0;
-    for i =1:size(gedian,1)
-        direction = (pos(1,1:2)-gedian(i,1:2))/norm(pos(1,1:2)-gedian(i,1:2));
-        if ThetaBucketwithGround<0
-            thetatmp = ThetaBucketwithGround+90;
-            pos3(1,1:2) = pos(1,1:2) - tool*sin(thetatmp*pi/180)*direction;
-            pos3(1,3) = pos(1,3) + tool*cos(thetatmp*pi/180);
-        else
-            thetatmp = 90-ThetaBucketwithGround;
-            pos3(1,1:2) = pos(1,1:2) - tool*sin(thetatmp*pi/180)*direction;
-            pos3(1,3) = pos(1,3) - tool*cos(thetatmp*pi/180);
-        end
-        [theta123,reliable] = InverseKinematicsPos2Angle(pos3);
-        if reliable==0
-            countNotReliable = countNotReliable + 1;
-            continue;
-        end
-
-        [Theta4,YES] = groundAngleRangeTOtheta4Range(theta123(1),theta123(2),theta123(3),[ThetaBucketwithGround,ThetaBucketwithGround]);
-        if YES == 0
-            countNotFitable = countNotFitable +1;
-            continue;
-%             error('µ±Ç°ÊäÈëµÄ³Ý¼âpos²»ÄÜÂú×ãÊ¹µÃ²ù¶·ÓëµØÃæ¼Ð½ÇÊÇThetaBucketwithGround');
-        else
-            [postmp0,postmp] = ForwardKinematics([theta123(1),theta123(2),theta123(3),Theta4{1}]);
-            if norm(postmp(1:3,4)-pos')>0.001
-                continue;
-            else
-                flagsuccess = 1;
-                break;
-            end
-        end
-    end
-    if countNotReliable==2 || countNotFitable==2
-        result = [];
-        return ; %±íÃ÷ÎÞ·¨Çó½â
-    end
-%     figure
-%     PlotTheta1234(theta123(1),theta123(2),theta123(3),Theta4{1});
-%     hold on 
-%     plot3(pos(1),pos(2),pos(3),'o');
-    if flagsuccess==0
-        if CheckInrange(theta123(1),theta1Range) && CheckInrange(theta123(2),theta2Range) && CheckInrange(theta123(3),theta3Range)
-            error('³ÌÐòÂß¼­³ö´í');
-        else
-            error('³ÌÐòÂß¼­Ã»ÎÊÌâ£¬Ö¸¶¨µÄposÎ»ÖÃÔÚÏÞÖÆµÄÌõ¼þÏÂ²»ÄÜµ½´ï');
-        end
-    end
-    result = [theta123(1),theta123(2),theta123(3),Theta4{1}];
-end
 
 function qiedian = GetQiedianOfCircle(ptCenter,ptOutside,dbRadious)
 %Ö»ÊÊÓÃÓÚ¶þÎ¬Çé¿ö
@@ -3065,25 +2659,6 @@ function qiedian = GetQiedianOfCircle(ptCenter,ptOutside,dbRadious)
     qiedian = H;
 
 %  //6. Êµ¼ÊÓ¦ÓÃ¹ý³ÌÖÐ£¬Ö»ÒªÒ»¸öÖÐ¼ä±äÁ¿E,ÆäËûF,G,H¿ÉÒÔ²»ÓÃ¡£
-end
-
-function gedian = GetGedianOfcircle(ptOutside)
-%Ô²µÄÖÐÐÄÊÇ0,0µã
-    GlobalDeclarationCommon
-    athis = norm(ptOutside);
-    bthis = sqrt(a1^2+d2^2);
-    xp = ptOutside(1);
-    yp = ptOutside(2);
-    cthis = (2*bthis*cosinetheta+sqrt(4*bthis^2*cosinetheta^2-4*(bthis^2-athis^2)))/2;
-    cosalpha1 = (2*(bthis-cthis*cosinetheta)*xp + sqrt( (2*(bthis-cthis*cosinetheta)*xp)^2-4*athis^2*((bthis-cthis*cosinetheta)^2-yp^2) ) )/(2*athis^2);
-    sinalpha1 = (bthis-cthis*cosinetheta-xp*cosalpha1)/yp;
-    gedian(1,1)=bthis*cosalpha1;
-    gedian(1,2)=bthis*sinalpha1;
-    
-    cosalpha2 = (2*(bthis-cthis*cosinetheta)*xp - sqrt( (2*(bthis-cthis*cosinetheta)*xp)^2-4*athis^2*((bthis-cthis*cosinetheta)^2-yp^2) ) )/(2*athis^2);
-    sinalpha2 = (bthis-cthis*cosinetheta-xp*cosalpha2)/yp;
-    gedian(2,1)=bthis*cosalpha2;
-    gedian(2,2)=bthis*sinalpha2;
 end
 
 
