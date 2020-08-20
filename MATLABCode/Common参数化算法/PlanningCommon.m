@@ -63,8 +63,38 @@ PlotSingularPointsOfBucketTip(110,PointA,PointB);
 % BeginAngelBucketWithGround = -21.2425;
 % EndAngelBucketWithGround =  -111.4202;
 
-Sequence = BucketTipLinearPlanningROBOTICSTOOL(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,150,150,25,25,25);
+% PointA = [556.1216 -240.4642  108.7025];
+% PointB = [663.6957 -284.1187  299.7914];
+% BeginAngelBucketWithGround = -93.6690;
+% EndAngelBucketWithGround = -21.8327;
+
+% PointB = [398.1105 -203.8291 -197.4437];
+% PointA = [550.8013 -276.1908 -343.4893];
+% EndAngelBucketWithGround = -157.2472;
+% BeginAngelBucketWithGround = -67.9361;
+%这个没解决 插到一般就没办法插了 因为超出了限度
+
+figure
+result = InverseKinematicsBucketTip(PointA',BeginAngelBucketWithGround);
+PlotTheta1234(result(1),result(2),result(3),result(4));
+figure
+result = InverseKinematicsBucketTip(PointB',EndAngelBucketWithGround);
+PlotTheta1234(result(1),result(2),result(3),result(4));
+
+
+Sequence = BucketTipLinearPlanningROBOTICSTOOL(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,5,5,5,25,25,25);
 %明天封装个可视化函数 20200820
+
+figure
+reducedSeqplot = [];
+for i=1:ceil(size(Sequence,2)/20):size(Sequence,2)
+    reducedSeqplot = [reducedSeqplot Sequence(2:5,i)];
+end
+PeterCorkePlotRobot(reducedSeqplot');
+
+
+
+
 BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,150,150,25,25,25);
 % (BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
 
@@ -2505,9 +2535,10 @@ function Sequence = BucketTipLinearPlanningROBOTICSTOOL(BeginPoint,EndPoint,Begi
     for i=1:size(Tsequence,3)
         tform = Tsequence(:,:,i);
         jointangle = InverseKinematics(tform);
-        
         if IsAnglesInLimitRange(jointangle) == 0
-            error('设计的规划算法使得角度超出了物理限制')
+            norm(BeginPoint-EndPoint)
+            error('设计的规划算法使得角度超出了物理限制 或者角度太刁钻')
+%             disp('');
         end
         posStore = [posStore;tform(1:3,4)'];
         jointangleSeq(i,:) = jointangle;
@@ -2538,9 +2569,16 @@ function Sequence = BucketTipLinearPlanningROBOTICSTOOL(BeginPoint,EndPoint,Begi
             ddposStore(i,:) = (dposStore(i+1,:)-dposStore(i,:))/(timesBEISHU*tinterval);
         end
         
-        if Rightbeishu-Leftbeishu<=0.1 %表明二分法精度到0.1 最后得到timesBEISHU的临界取值
+        if Rightbeishu-Leftbeishu<=1 %表明二分法精度到0.1 最后得到timesBEISHU的临界取值
             FLAGWHILE = FLAGWHILE+1;
             timesBEISHU = Rightbeishu;
+            timesBEISHU = ceil(timesBEISHU);
+            if max(abs(djointangleSeq(:,2)))>Vtheta2Max==1 || max(abs(djointangleSeq(:,3)))>Vtheta3Max==1 || max(abs(djointangleSeq(:,4)))>Vtheta4Max==1 ...
+                || max(abs(ddjointangleSeq(:,2)))>atheta2max==1||max(abs(ddjointangleSeq(:,3)))>atheta3max==1||max(abs(ddjointangleSeq(:,4)))>atheta4max==1
+                if FLAGWHILE==2
+                    error('设置的精度出错')
+                end
+            end
         else
             if max(abs(djointangleSeq(:,2)))>Vtheta2Max==1 || max(abs(djointangleSeq(:,3)))>Vtheta3Max==1 || max(abs(djointangleSeq(:,4)))>Vtheta4Max==1 ...
                 || max(abs(ddjointangleSeq(:,2)))>atheta2max==1||max(abs(ddjointangleSeq(:,3)))>atheta3max==1||max(abs(ddjointangleSeq(:,4)))>atheta4max==1
@@ -2553,10 +2591,19 @@ function Sequence = BucketTipLinearPlanningROBOTICSTOOL(BeginPoint,EndPoint,Begi
     end
     
     Sequence = []; %最终返回带时间戳的各角度
-    for i=1:size(jointangleSeq,1)
+    for i=1:size(jointangleSeq,1)-1
         timethis = (i-1)*(timesBEISHU*tinterval);
-        Sequence(:,i) = [timethis;jointangleSeq(i,:)'];
+        Sequence = [Sequence,[timethis;jointangleSeq(i,:)']];
+        tmp = jointangleSeq(i+1,:)-jointangleSeq(i,:);
+        tmp = tmp/timesBEISHU;
+        for j=1:timesBEISHU-1
+            Sequence = [Sequence,[timethis+j*tinterval;Sequence(2:5,end)+tmp']];
+        end
     end
+    timethis = (size(jointangleSeq,1)-1)*(timesBEISHU*tinterval);
+    Sequence = [Sequence,[timethis;jointangleSeq(size(jointangleSeq,1),:)']];
+    
+    
     
     degq = jointangleSeq;
     degdq = djointangleSeq;
