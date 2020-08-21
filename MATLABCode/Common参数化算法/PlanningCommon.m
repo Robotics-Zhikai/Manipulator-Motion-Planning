@@ -58,10 +58,10 @@ PlotSingularPointsOfBucketTip(110,PointA,PointB);
 % BeginAngelBucketWithGround = -93.2128;
 % EndAngelBucketWithGround = -82.0676;
 
-% PointA = [681.1443  -21.8567  172.4116];
-% PointB = [ 546.0533  -20.2392  -29.5721];
-% BeginAngelBucketWithGround = -21.2425;
-% EndAngelBucketWithGround =  -111.4202;
+PointA = [681.1443  -21.8567  172.4116];
+PointB = [ 546.0533  -20.2392  -29.5721];
+BeginAngelBucketWithGround = -21.2425;
+EndAngelBucketWithGround =  -111.4202;
 
 % PointA = [556.1216 -240.4642  108.7025];
 % PointB = [663.6957 -284.1187  299.7914];
@@ -82,7 +82,7 @@ result = InverseKinematicsBucketTip(PointB',EndAngelBucketWithGround);
 PlotTheta1234(result(1),result(2),result(3),result(4));
 
 
-Sequence = BucketTipLinearPlanningROBOTICSTOOL(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,5,5,5,25,25,25);
+Sequence = BucketTipLinearPlanningROBOTICSTOOL(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,35,35,35,25,25,25);
 %明天封装个可视化函数 20200820
 
 figure
@@ -2537,7 +2537,8 @@ function Sequence = BucketTipLinearPlanningROBOTICSTOOL(BeginPoint,EndPoint,Begi
         jointangle = InverseKinematics(tform);
         if IsAnglesInLimitRange(jointangle) == 0
             norm(BeginPoint-EndPoint)
-            error('设计的规划算法使得角度超出了物理限制 或者角度太刁钻')
+            warning('设计的规划算法使得角度超出了物理限制 或者角度太刁钻,最终输出的序列不是完整到达目标位置的');
+            break;
 %             disp('');
         end
         posStore = [posStore;tform(1:3,4)'];
@@ -2545,8 +2546,8 @@ function Sequence = BucketTipLinearPlanningROBOTICSTOOL(BeginPoint,EndPoint,Begi
     end
     
     
-    djointangleSeq = [0 2*Vtheta2Max 2*Vtheta3Max 2*Vtheta4Max];
-    ddjointangleSeq = [0 2*atheta2max 2*atheta3max 2*atheta4max];
+%     djointangleSeq = [0 2*Vtheta2Max 2*Vtheta3Max 2*Vtheta4Max];
+%     ddjointangleSeq = [0 2*atheta2max 2*atheta3max 2*atheta4max];
     Leftbeishu = 0;
     Rightbeishu = 4000; %这意味着40秒走最多8cm 一秒2mm 基本可以认定是静止的了
     timesBEISHU = (Leftbeishu+Rightbeishu)/2;
