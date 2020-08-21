@@ -1,18 +1,11 @@
 #ifndef PLANNING_H
 #define PLANNING_H
 
-#include <vector>
-#include <algorithm>
-#include <math.h>
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <vector>
-#include <math.h>
+#include "main.h"
 
-typedef unsigned char boolean_T;
-using namespace std;
+
+
+
 
 class MatlabDouble
 {
@@ -294,6 +287,8 @@ void ManipulatorPlanningJointSpaceSub(double theta0, double thetaf, double tf, d
 	int *success);
 void ManipulatorPlanningJointSpaceDEMO();
 
+//Matrix<double, Dynamic, Dynamic> ctraj_c(Matrix4d T0, Matrix4d T1, double t_input);
+void ctrajDEMO();
 
 
 
