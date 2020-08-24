@@ -58,10 +58,10 @@ PlotSingularPointsOfBucketTip(110,PointA,PointB);
 % BeginAngelBucketWithGround = -93.2128;
 % EndAngelBucketWithGround = -82.0676;
 
-PointA = [681.1443  -21.8567  172.4116];
-PointB = [ 546.0533  -20.2392  -29.5721];
-BeginAngelBucketWithGround = -21.2425;
-EndAngelBucketWithGround =  -111.4202;
+% PointA = [681.1443  -21.8567  172.4116];
+% PointB = [ 546.0533  -20.2392  -29.5721];
+% BeginAngelBucketWithGround = -21.2425;
+% EndAngelBucketWithGround =  -111.4202;
 
 % PointA = [556.1216 -240.4642  108.7025];
 % PointB = [663.6957 -284.1187  299.7914];
@@ -72,7 +72,7 @@ EndAngelBucketWithGround =  -111.4202;
 % PointA = [550.8013 -276.1908 -343.4893];
 % EndAngelBucketWithGround = -157.2472;
 % BeginAngelBucketWithGround = -67.9361;
-%这个没解决 插到一般就没办法插了 因为超出了限度
+% %这个没解决 插到一般就没办法插了 因为超出了限度 把工具箱里改成shortest选项就能了
 
 figure
 result = InverseKinematicsBucketTip(PointA',BeginAngelBucketWithGround);

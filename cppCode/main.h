@@ -38,6 +38,9 @@ extern Vector2d theta2Range;
 extern Vector2d theta3Range;
 extern Vector2d theta4Range;
 
+extern double tinterval;
+
 void error(string msg);
+void warning(string msg);
 
 #endif

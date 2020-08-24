@@ -55,3 +55,5 @@ omigay 和 k的选取是耦合的，如何解耦？？？
 可视化 修复一些bug 尝试转C语言 MATLAB code generation 似乎有点坑啊。。。
 ## 20200821
 ctraj函数转化到c语言 用矩阵库Eigen就有MATLAB编程的感觉了
+## 20200824 
+转换cpp

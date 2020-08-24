@@ -3,7 +3,7 @@
 
 #include "main.h"
 
-
+#include "FIKinematic.h"
 
 
 
@@ -287,10 +287,11 @@ void ManipulatorPlanningJointSpaceSub(double theta0, double thetaf, double tf, d
 	int *success);
 void ManipulatorPlanningJointSpaceDEMO();
 
-//Matrix<double, Dynamic, Dynamic> ctraj_c(Matrix4d T0, Matrix4d T1, double t_input);
+Matrix<double, Dynamic, Dynamic> ctraj_c(Matrix4d T0, Matrix4d T1, double t_input, int Isshortest);
 void ctrajDEMO();
 
-
+Matrix<double, Dynamic, Dynamic> BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta2max, double atheta3max, double atheta4max);
+void BucketTipLinearPlanningDEMO();
 
 
 #endif

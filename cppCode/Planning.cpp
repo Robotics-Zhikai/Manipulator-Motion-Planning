@@ -604,13 +604,23 @@ UnitQuaternion Tran2Quaternion_c(Matrix4d T)
 	return q;
 }
 
-UnitQuaternion interp(UnitQuaternion Q0, UnitQuaternion Q1,double s)
+UnitQuaternion interp(UnitQuaternion Q0, UnitQuaternion Q1,double s, int Isshortest)
 {
 	Vector4d q1(Q0.s, Q0.v(0), Q0.v(1), Q0.v(2));
 	Vector4d q2(Q1.s, Q1.v(0), Q1.v(1), Q1.v(2));
 	double r = s;
 	
 	double cosTheta = (q1.transpose())*q2;
+
+	if (Isshortest == 1)
+	{
+		if (cosTheta < 0)
+		{
+			q1 = -q1;
+			cosTheta = -cosTheta;
+		}
+	}
+
 	double theta = acos(cosTheta);
 
 	if (r < 0 || r>1)
@@ -626,13 +636,14 @@ UnitQuaternion interp(UnitQuaternion Q0, UnitQuaternion Q1,double s)
 	{
 		Vector4d tmp = (sin((1 - r)*theta) * q1 + sin(r*theta) * q2) / sin(theta);
 		tmp = tmp / tmp.norm();
-		q.s = tmp(0);
+
+		q.s = tmp[0]; //这个在索引后不知为何值会变
 		q.v = tmp.block(1, 0, 3, 1);
 	}
 	return q;
 }
 
-Matrix<double,Dynamic,Dynamic> trinterp_c(Matrix4d A, Matrix4d B, double C)
+Matrix<double,Dynamic,Dynamic> trinterp_c(Matrix4d A, Matrix4d B, double C,int Isshortest)
 {
 	Matrix4d T0, T1;
 	T0 = A;
@@ -672,7 +683,7 @@ Matrix<double,Dynamic,Dynamic> trinterp_c(Matrix4d A, Matrix4d B, double C)
 	T.resize(4, 4 * s.size());
 	for (int i = 0; i < s.size(); i++)
 	{
-		qr = interp(q0, q1, s[i]);
+		qr = interp(q0, q1, s[i], Isshortest);
 		pr = p0*(1 - s[i]) + s[i]*p1;
 		Matrix4d Ttmp = Matrix4d::Zero();
 		Ttmp.block(0, 0, 3, 3) = qr.R();
@@ -683,7 +694,7 @@ Matrix<double,Dynamic,Dynamic> trinterp_c(Matrix4d A, Matrix4d B, double C)
 	return T;
 }
 
-Matrix<double, Dynamic, Dynamic> ctraj_c(Matrix4d T0, Matrix4d T1, double t_input)
+Matrix<double, Dynamic, Dynamic> ctraj_c(Matrix4d T0, Matrix4d T1, double t_input,int Isshortest)
 {
 	//插值函数
 	vector<double> s;
@@ -694,7 +705,7 @@ Matrix<double, Dynamic, Dynamic> ctraj_c(Matrix4d T0, Matrix4d T1, double t_inpu
 	for (int i = 0; i < s.size(); i++)
 	{
 		Matrix<double, Dynamic, Dynamic> TMP;
-		TMP = trinterp_c(T0, T1, s[i]);
+		TMP = trinterp_c(T0, T1, s[i], Isshortest);
 		traj.block(0, lie, TMP.rows(), TMP.cols()) = TMP;
 		lie = lie + TMP.cols();
 	}
@@ -708,18 +719,32 @@ void ctrajDEMO()
 	//Matrix4d T1 4*4的矩阵，表示末的齐次转换矩阵
 	//double t_input,表示插多少值（数量） 正整数
 	Matrix4d T0;
-	T0 << 0.9320, 0.3623, -0.0120, 681.1443,
-		-0.0112, -0.0043, -0.9999, -21.8567,
-		-0.3623, 0.9321, 0.0000, 172.4116,
-		0, 0, 0, 1.0000;
 	Matrix4d T1;
-	T1 << -0.3652, 0.9309, -0.0120, 546.0533,
-		0.0044, -0.0111, -0.9999, -20.2392,
-		-0.9309, -0.3652, 0.0000, -29.5721,
+
+	//T0 << 0.9320, 0.3623, -0.0120, 681.1443,
+	//	-0.0112, -0.0043, -0.9999, -21.8567,
+	//	-0.3623, 0.9321, 0.0000, 172.4116,
+	//	0, 0, 0, 1.0000;
+	//
+	//T1 << -0.3652, 0.9309, -0.0120, 546.0533,
+	//	0.0044, -0.0111, -0.9999, -20.2392,
+	//	-0.9309, -0.3652, 0.0000, -29.5721,
+	//	0, 0, 0, 1.0000;
+
+	T0 << 0.3395, 0.8375, -0.4283, 550.8013,
+		-0.1609, -0.3969, -0.9037, -276.1908,
+		-0.9268, 0.3756, 0.0000, -343.4893,
 		0, 0, 0, 1.0000;
+	T1 << -0.8333, 0.3495, -0.4283, 398.1105,
+		0.3949, -0.1656, -0.9037, -203.8291,
+		-0.3868, -0.9222, 0.0000, -197.4437,
+		0, 0, 0, 1.0000;
+
+
 	double t = 200;
 	Matrix<double, Dynamic, Dynamic> traj; //存放插值后的齐次转换矩阵 4行 4*t列
-	traj = ctraj_c(T0, T1, t);
+	traj = ctraj_c(T0, T1, t, 1);
+	//traj = ctraj_c(T0, T1, t, 0); 
 
 	for (int i = 1; i <= t; i++)
 	{
@@ -728,16 +753,171 @@ void ctrajDEMO()
 	}
 }
 
-Matrix<double, Dynamic, Dynamic> BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta2max, double atheta3max, double atheta4max)
+int IsAnglesInLimitRange(Vector4d jointAngles)
 {
-	Matrix<double, Dynamic, Dynamic> Tsequence = ctraj_c(BeginT, EndT, 200);
-
-	return Tsequence;
-
-
-
-
-
-
-
+	if ((jointAngles(0) < theta1Range(0) || jointAngles(0) > theta1Range(1)) || (jointAngles(1) < theta2Range(0) || jointAngles(1) > theta2Range(1)) \
+		|| (jointAngles(2) < theta3Range(0) || jointAngles(2) > theta3Range(1)) || (jointAngles(3) < theta4Range(0) || jointAngles(3) > theta4Range(1)))
+		return 0;
+	else
+		return 1;
 }
+
+void BucketTipLinearPlanningDEMO()
+{
+	//如何调用BucketTipLinearPlanning 
+	//Matrix4d T0 4*4的矩阵，表示初始的齐次转换矩阵
+	//Matrix4d T1 4*4的矩阵，表示末的齐次转换矩阵
+	//Vtheta2Max Vtheta3Max Vtheta4Max 各自的最大允许角速度 单位为度每秒
+	//atheta2max atheta3max atheta4max 各自的最大允许角加速度 单位为度每二次方秒
+
+	//输出Sequence 储存带时间戳的四个角度 5行 num列矩阵
+
+	Matrix4d T0;
+	Matrix4d T1;
+
+	//T0 << 0.9320, 0.3623, -0.0120, 681.1443,
+	//	-0.0112, -0.0043, -0.9999, -21.8567,
+	//	-0.3623, 0.9321, 0.0000, 172.4116,
+	//	0, 0, 0, 1.0000;
+	//
+	//T1 << -0.3652, 0.9309, -0.0120, 546.0533,
+	//	0.0044, -0.0111, -0.9999, -20.2392,
+	//	-0.9309, -0.3652, 0.0000, -29.5721,
+	//	0, 0, 0, 1.0000;
+
+	T0 << 0.3395, 0.8375, -0.4283, 550.8013,
+		-0.1609, -0.3969, -0.9037, -276.1908,
+		-0.9268, 0.3756, 0.0000, -343.4893,
+		0, 0, 0, 1.0000;
+	T1 << -0.8333, 0.3495, -0.4283, 398.1105,
+		0.3949, -0.1656, -0.9037, -203.8291,
+		-0.3868, -0.9222, 0.0000, -197.4437,
+		0, 0, 0, 1.0000;
+
+	MatrixXd Sequence = BucketTipLinearPlanning(T0, T1, 35, 35, 35, 25, 25, 25);
+	for (int i = 0; i < Sequence.cols(); i++)
+	{
+		cout << Sequence.col(i).transpose() << endl;
+	}
+}
+
+MatrixXd abs(MatrixXd mat)
+{
+	MatrixXd matout(mat.rows(),mat.cols());
+	for (int i = 0; i < mat.rows(); i++)
+	{
+		for (int j = 0; j < mat.cols(); j++)
+		{
+			matout(i, j) = abs(mat(i, j));
+		}
+	}
+	return matout;
+}
+
+MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta2max, double atheta3max, double atheta4max)
+{
+	Matrix<double, Dynamic, Dynamic> Tsequence = ctraj_c(BeginT, EndT, 200, 0); //优先是1 若1不能就0 
+
+	Matrix<double, Dynamic, Dynamic> jointangleSeq(Tsequence.cols() / 4,4);
+
+	int countInDead = 0;
+	int countValidjointangleSeqRow = 0;
+	for (int i = 1; i <= Tsequence.cols()/4; i++)
+	{
+		Matrix4d tform = Tsequence.block(0, 4 * (i - 1), 4, 4);
+		Vector4d jointangle = InverseKinematics(tform);
+		if (IsAnglesInLimitRange(jointangle) == 0)
+		{
+			countInDead++;
+			warning(" 有可能插值算法插的方向错了'shortest'或非'shortest'");
+			
+			Tsequence = ctraj_c(BeginT, EndT, 200, 1);
+			//cout << jointangleSeq;
+			jointangleSeq = MatrixXd::Zero(Tsequence.cols() / 4, 4);
+			//cout << "asdfasdfasdf" << endl;
+			//cout << jointangleSeq;
+			i = 0;
+			countValidjointangleSeqRow = 0;
+			continue;
+			if (countInDead == 2)
+			{
+				warning("设计的规划算法使得角度超出了物理限制,最终输出的序列不是完整到达目标位置的");
+				break;
+			}
+				
+		}
+		jointangleSeq.row((i - 1)) = jointangle.transpose(); //如果想要动态扩展的话需要初始化一个空间 然后resize。不能用resize 每次用都要清除原来的数据，只能预分配
+		countValidjointangleSeqRow++;
+	}
+	jointangleSeq = jointangleSeq.block(0, 0, countValidjointangleSeqRow, jointangleSeq.cols());
+	//20200825 检验这个对不对 然后把0 和1 对调
+
+	double Leftbeishu = 0;
+	double Rightbeishu = 4000; //这意味着40秒走最多8cm 一秒2mm 基本可以认定是静止的了
+	double timesBEISHU = (Leftbeishu + Rightbeishu) / 2.0;
+	int FLAGWHILE = 0;
+
+	while (FLAGWHILE < 2)
+	{
+		MatrixXd djointangleSeq(jointangleSeq.rows() - 1, 4);
+		for (int i = 0; i < jointangleSeq.rows() - 1; i++)
+			djointangleSeq.row(i) = (jointangleSeq.row(i + 1) - jointangleSeq.row(i)) / (timesBEISHU*tinterval);
+		MatrixXd ddjointangleSeq(djointangleSeq.rows() - 1, 4);
+		for (int i = 0;i<djointangleSeq.rows() - 1;i++)
+			ddjointangleSeq.row(i) = (djointangleSeq.row(i + 1) - djointangleSeq.row(i)) / (timesBEISHU*tinterval);
+	
+		if (Rightbeishu - Leftbeishu <= 1) // 表明二分法精度到1 最后得到timesBEISHU的临界取值
+		{
+			FLAGWHILE = FLAGWHILE + 1;
+			timesBEISHU = Rightbeishu;
+			timesBEISHU = ceil(timesBEISHU);
+			if (abs(djointangleSeq.col(1)).maxCoeff() > Vtheta2Max || abs(djointangleSeq.col(2)).maxCoeff() > Vtheta3Max \
+				|| abs(djointangleSeq.col(3)).maxCoeff() > Vtheta4Max || abs(ddjointangleSeq.col(1)).maxCoeff() > atheta2max \
+				|| abs(ddjointangleSeq.col(2)).maxCoeff() > atheta3max || abs(ddjointangleSeq.col(3)).maxCoeff() > atheta4max)
+			{
+				if (FLAGWHILE == 2)
+					error("设置的精度出错");
+			}
+		}
+		else
+		{
+			if (abs(djointangleSeq.col(1)).maxCoeff() > Vtheta2Max || abs(djointangleSeq.col(2)).maxCoeff() > Vtheta3Max \
+				|| abs(djointangleSeq.col(3)).maxCoeff() > Vtheta4Max || abs(ddjointangleSeq.col(1)).maxCoeff() > atheta2max \
+				|| abs(ddjointangleSeq.col(2)).maxCoeff() > atheta3max || abs(ddjointangleSeq.col(3)).maxCoeff() > atheta4max)
+				Leftbeishu = timesBEISHU;
+			else
+				Rightbeishu = timesBEISHU;
+			timesBEISHU = Leftbeishu + (Rightbeishu - Leftbeishu) / 2.0;
+		}
+	}
+
+	MatrixXd Sequence(5, (int)(jointangleSeq.rows()+ (jointangleSeq.rows()-1)*(timesBEISHU-1))) ; //最终返回带时间戳的各角度
+	int k_Sequence = 0;
+	
+	for (int i = 0; i < jointangleSeq.rows() - 1; i++)
+	{
+		
+		double timethis = i*(timesBEISHU*tinterval);
+		MatrixXd tmpSequencecol(5, 1);
+		tmpSequencecol << timethis, jointangleSeq.row(i)(0), jointangleSeq.row(i)(1), jointangleSeq.row(i)(2), jointangleSeq.row(i)(3);
+		Sequence.col(k_Sequence) = tmpSequencecol;
+		//cout << tmpSequencecol << endl;
+		MatrixXd tmp = jointangleSeq.row(i + 1) - jointangleSeq.row(i);
+		tmp = tmp / timesBEISHU;
+		
+		for (int j = 1; j <= timesBEISHU - 1; j++)
+		{
+			Sequence.col(k_Sequence + j)(0) = timethis + j*tinterval;
+			MatrixXd tmpthis = Sequence.col(k_Sequence + j - 1).block(1, 0, 4, 1) + tmp.transpose();
+			Sequence.col(k_Sequence + j).block(1, 0, 4, 1) = tmpthis;
+		}
+		k_Sequence = k_Sequence + timesBEISHU;
+	}
+	double timethis = (jointangleSeq.rows() - 1)*(timesBEISHU*tinterval);
+	MatrixXd tmpSequencecol(5, 1);
+	tmpSequencecol << timethis, jointangleSeq.row(jointangleSeq.rows() - 1)(0), jointangleSeq.row(jointangleSeq.rows() - 1)(1), jointangleSeq.row(jointangleSeq.rows() - 1)(2), jointangleSeq.row(jointangleSeq.rows() - 1)(3);
+	Sequence.col(Sequence.cols() - 1) = tmpSequencecol;
+
+	return Sequence;
+}
+
