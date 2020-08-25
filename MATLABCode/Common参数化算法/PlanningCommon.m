@@ -28,22 +28,22 @@ InnerEdgeUp = GetInnerEdgeOfPlaneWorkSpaceUp(0.5);
 
 
 
-% %%
-% %关节空间下任意两点，快速到达 保持内容物不漏
-% [AnglesA,AnglesB]=RandomGenerateTWOAngles();
-% % AnglesA = [-53.4025   29.7896  -65.6209  -28.5359];
-% % AnglesB = [150.1897  -15.9895  -46.7080   -2.0152];
-% AnglesB = [170.2708   14.5153  -41.9636  -41.0063];
-% AnglesA = [-24.3390   29.3264 -120.8183  -82.6878];
-% AngleSequence = CarryAndReleaseTask([170,-170],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
-% 
-% figure
-% reducedSeqplot = [];
-% for i=1:ceil(size(AngleSequence,2)/80):size(AngleSequence,2)
-%     reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
-% end
-% PeterCorkePlotRobot(reducedSeqplot');
-% 
+%%
+%关节空间下任意两点，快速到达 保持内容物不漏
+[AnglesA,AnglesB]=RandomGenerateTWOAngles();
+% AnglesA = [-53.4025   29.7896  -65.6209  -28.5359];
+% AnglesB = [150.1897  -15.9895  -46.7080   -2.0152];
+AnglesB = [170.2708   14.5153  -41.9636  -41.0063];
+AnglesA = [-24.3390   29.3264 -120.8183  -82.6878];
+AngleSequence = CarryAndReleaseTask([170,-170],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
+
+figure
+reducedSeqplot = [];
+for i=1:ceil(size(AngleSequence,2)/80):size(AngleSequence,2)
+    reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
+end
+PeterCorkePlotRobot(reducedSeqplot');
+
 
 
 
