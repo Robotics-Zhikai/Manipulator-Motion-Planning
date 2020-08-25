@@ -93,7 +93,7 @@ int main()
 	//double Tsequence[4];
 
 	BucketTipLinearPlanningDEMO();
-	ctrajDEMO();
-	ManipulatorPlanningJointSpaceDEMO();
-	system("pause");
+	//ctrajDEMO();
+	//ManipulatorPlanningJointSpaceDEMO();
+	//system("pause");
 }

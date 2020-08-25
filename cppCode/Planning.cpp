@@ -816,7 +816,7 @@ MatrixXd abs(MatrixXd mat)
 
 MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta2max, double atheta3max, double atheta4max)
 {
-	Matrix<double, Dynamic, Dynamic> Tsequence = ctraj_c(BeginT, EndT, 200, 0); //优先是1 若1不能就0 
+	Matrix<double, Dynamic, Dynamic> Tsequence = ctraj_c(BeginT, EndT, 200, 1); //优先是1 若1不能就0  优先shortest
 
 	Matrix<double, Dynamic, Dynamic> jointangleSeq(Tsequence.cols() / 4,4);
 
@@ -829,9 +829,15 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 		if (IsAnglesInLimitRange(jointangle) == 0)
 		{
 			countInDead++;
+			if (countInDead == 2)
+			{
+				warning("设计的规划算法使得角度超出了物理限制,最终输出的序列不是完整到达目标位置的");
+				break;
+			}
 			warning(" 有可能插值算法插的方向错了'shortest'或非'shortest'");
 			
-			Tsequence = ctraj_c(BeginT, EndT, 200, 1);
+			Tsequence = MatrixXd::Zero(Tsequence.rows(), Tsequence.cols());
+			Tsequence = ctraj_c(BeginT, EndT, 200, 0);
 			//cout << jointangleSeq;
 			jointangleSeq = MatrixXd::Zero(Tsequence.cols() / 4, 4);
 			//cout << "asdfasdfasdf" << endl;
@@ -839,18 +845,12 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 			i = 0;
 			countValidjointangleSeqRow = 0;
 			continue;
-			if (countInDead == 2)
-			{
-				warning("设计的规划算法使得角度超出了物理限制,最终输出的序列不是完整到达目标位置的");
-				break;
-			}
-				
 		}
 		jointangleSeq.row((i - 1)) = jointangle.transpose(); //如果想要动态扩展的话需要初始化一个空间 然后resize。不能用resize 每次用都要清除原来的数据，只能预分配
 		countValidjointangleSeqRow++;
 	}
 	jointangleSeq = jointangleSeq.block(0, 0, countValidjointangleSeqRow, jointangleSeq.cols());
-	//20200825 检验这个对不对 然后把0 和1 对调
+	//20200825 检验这个对不对 然后把0 和1 对调 应该是正确的 误差在0.1度
 
 	double Leftbeishu = 0;
 	double Rightbeishu = 4000; //这意味着40秒走最多8cm 一秒2mm 基本可以认定是静止的了

@@ -28,6 +28,26 @@ InnerEdgeUp = GetInnerEdgeOfPlaneWorkSpaceUp(0.5);
 
 
 
+% %%
+% %关节空间下任意两点，快速到达 保持内容物不漏
+% [AnglesA,AnglesB]=RandomGenerateTWOAngles();
+% % AnglesA = [-53.4025   29.7896  -65.6209  -28.5359];
+% % AnglesB = [150.1897  -15.9895  -46.7080   -2.0152];
+% AnglesB = [170.2708   14.5153  -41.9636  -41.0063];
+% AnglesA = [-24.3390   29.3264 -120.8183  -82.6878];
+% AngleSequence = CarryAndReleaseTask([170,-170],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
+% 
+% figure
+% reducedSeqplot = [];
+% for i=1:ceil(size(AngleSequence,2)/80):size(AngleSequence,2)
+%     reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
+% end
+% PeterCorkePlotRobot(reducedSeqplot');
+% 
+
+
+
+
 %%
 [PointA,BeginAngelBucketWithGround,PointB,EndAngelBucketWithGround,angleA,angleB] = RandGenratePointDirectLineBucketTip([200 250]);
 [Theta4Range,YES] = groundAngleRangeTOtheta4Range(angleA(1),angleA(2),angleA(3),[BeginAngelBucketWithGround,BeginAngelBucketWithGround]);
@@ -68,10 +88,10 @@ PlotSingularPointsOfBucketTip(110,PointA,PointB);
 % BeginAngelBucketWithGround = -93.6690;
 % EndAngelBucketWithGround = -21.8327;
 
-% PointB = [398.1105 -203.8291 -197.4437];
-% PointA = [550.8013 -276.1908 -343.4893];
-% EndAngelBucketWithGround = -157.2472;
-% BeginAngelBucketWithGround = -67.9361;
+PointB = [398.1105 -203.8291 -197.4437];
+PointA = [550.8013 -276.1908 -343.4893];
+EndAngelBucketWithGround = -157.2472;
+BeginAngelBucketWithGround = -67.9361;
 % %这个没解决 插到一般就没办法插了 因为超出了限度 把工具箱里改成shortest选项就能了
 
 figure
@@ -95,6 +115,14 @@ PeterCorkePlotRobot(reducedSeqplot');
 
 
 
+
+
+
+
+
+
+
+%%
 BucketTipLinearPlanning(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,150,150,150,25,25,25);
 % (BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta2max,atheta3max,atheta4max)
 
@@ -194,6 +222,185 @@ end
 % db2(1,1,1,0,3,2,1) %0.001
 
 % result = mathAtan2(1,2)
+
+
+function [AngelsA,AnglesB]=RandomGenerateTWOAngles()
+    GlobalDeclarationCommon
+    AngelsA(1) = RandGenerateNumber(theta1Range(1),theta1Range(2),1);
+    AngelsA(2) = RandGenerateNumber(theta2Range(1),theta2Range(2),1);
+    AngelsA(3) = RandGenerateNumber(theta3Range(1),theta3Range(2),1);
+    AngelsA(4) = RandGenerateNumber(theta4Range(1),theta4Range(2),1);
+    
+    AnglesB(1) = RandGenerateNumber(theta1Range(1),theta1Range(2),1);
+    AnglesB(2) = RandGenerateNumber(theta2Range(1),theta2Range(2),1);
+    AnglesB(3) = RandGenerateNumber(theta3Range(1),theta3Range(2),1);
+    AnglesB(4) = RandGenerateNumber(theta4Range(1),theta4Range(2),1);
+end
+
+
+function AngleSequence = CarryAndReleaseTask(StableRange,AnglesBegin,AnglesEnd,Vmaxtheta1,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta1,amaxtheta2,amaxtheta3,amaxtheta4)
+    %20200826 思考怎么搞这个逻辑
+    GlobalDeclarationCommon
+    
+    SampleTime = tinterval;
+    
+    LeftTF = 0;
+    RightTF = 100; %一般不会到100秒都不到的
+    
+    tf = LeftTF +(RightTF-LeftTF)/2;
+    
+    while RightTF-LeftTF>0.5 || isempty(AngleSequence)==1
+        AngleSequence = [];
+        for i=1:tf/SampleTime+1
+            t = (i-1)*SampleTime;
+            [theta1,successtheta1] = ManipulatorPlanningJointSpaceSub(AnglesBegin(1),AnglesEnd(1),tf,amaxtheta1,Vmaxtheta1,t,0.1,1);
+            [theta2,successtheta2] = ManipulatorPlanningJointSpaceSub(AnglesBegin(2),AnglesEnd(2),tf,amaxtheta2,Vmaxtheta2,t,0.1,1);
+            [theta3,successtheta3] = ManipulatorPlanningJointSpaceSub(AnglesBegin(3),AnglesEnd(3),tf,amaxtheta3,Vmaxtheta3,t,0.1,1);
+            [theta4,successtheta4] = ManipulatorPlanningJointSpaceSub(AnglesBegin(4),AnglesEnd(4),tf,amaxtheta4,Vmaxtheta4,t,0.1,1);
+            if successtheta1==1 && successtheta2==1 && successtheta3==1 && successtheta4==1
+                AngleSequence = [AngleSequence [t;theta1;theta2;theta3;theta4]];
+            else
+                AngleSequence = [];
+                break;
+            end
+        end
+        
+        if isempty(AngleSequence)==1
+            LeftTF = tf;
+        else
+            RightTF = tf;
+        end
+        tf = LeftTF +(RightTF-LeftTF)/2;
+    end
+    
+    flagChange_tf = 0;
+    while flagChange_tf==0
+    
+    
+        LastTheta4 = AngleSequence(5,1);
+        LastvTheta4 = 0;
+        for i=2:size(AngleSequence,2)
+            if isempty(GetIntersection(LastTheta4,theta4Range))||isempty(GetIntersection(LastvTheta4,[-Vmaxtheta4 Vmaxtheta4]))
+                %说明超出物理限制了 应该让AngleSequence变得慢一点
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+                tf = 1.1*tf;
+                AngleSequence = [];
+                for k=1:tf/SampleTime+1
+                    t = (k-1)*SampleTime;
+                    [theta1,successtheta1] = ManipulatorPlanningJointSpaceSub(AnglesBegin(1),AnglesEnd(1),tf,amaxtheta1,Vmaxtheta1,t,0.1,1);
+                    [theta2,successtheta2] = ManipulatorPlanningJointSpaceSub(AnglesBegin(2),AnglesEnd(2),tf,amaxtheta2,Vmaxtheta2,t,0.1,1);
+                    [theta3,successtheta3] = ManipulatorPlanningJointSpaceSub(AnglesBegin(3),AnglesEnd(3),tf,amaxtheta3,Vmaxtheta3,t,0.1,1);
+                    [theta4,successtheta4] = ManipulatorPlanningJointSpaceSub(AnglesBegin(4),AnglesEnd(4),tf,amaxtheta4,Vmaxtheta4,t,0.1,1);
+                    if successtheta1==1 && successtheta2==1 && successtheta3==1 && successtheta4==1
+                        AngleSequence = [AngleSequence [t;theta1;theta2;theta3;theta4]];
+                    else
+                        AngleSequence = [];
+                        break;
+                    end
+                end
+                break; %flagChange_tf=0 继续循环
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                 disp('');
+            end
+    %         NowTheta4 = AngleSequence(5,i);
+    %         NowvTheta4 = (NowTheta4-LastTheta4)/tinterval;
+            [Theta4Rangetmp,YES] = groundAngleRangeTOtheta4Range(AngleSequence(2,i),AngleSequence(3,i),AngleSequence(4,i),StableRange);
+
+            if YES==1
+                Rangeall = [];
+                for j = 1:size(Theta4Rangetmp,2)
+                    Rangeall = [Rangeall Theta4Rangetmp{j}];
+                end
+                Rangeall = [min(Rangeall) max(Rangeall)];%这是要想保证稳定，theta4需要满足的取值范围 %应该是两个区间紧挨着的 除非允许的theta4的范围靠近突变点180
+
+                PhisicsRangetheta4 = [LastTheta4+(LastvTheta4-amaxtheta4*tinterval)*tinterval LastTheta4+(LastvTheta4+amaxtheta4*tinterval)*tinterval];
+                theta4Cango = GetIntersection(PhisicsRangetheta4,Rangeall); %theta4满足约束下可以去的范围
+                if isempty(theta4Cango)==1
+                    %说明没有能去的 可能原因是tf给小了，适当增大tf使得整个进程变慢，就能在给定的加速度下达到稳定的区域了
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    if max(PhisicsRangetheta4)<min(Rangeall) %追赶
+                        LastvTheta4 = LastvTheta4+amaxtheta4*tinterval;
+                        NowTheta4 = LastTheta4+LastvTheta4*tinterval;
+                        AngleSequence(5,i) = NowTheta4;
+                        LastTheta4 = NowTheta4;
+                        continue;
+                    else
+                        if min(PhisicsRangetheta4)>max(Rangeall)
+                            LastvTheta4 = LastvTheta4-amaxtheta4*tinterval;
+                            NowTheta4 = LastTheta4+LastvTheta4*tinterval;
+                            AngleSequence(5,i) = NowTheta4;
+                            LastTheta4 = NowTheta4;
+                            continue;
+                        else
+                            error('程序逻辑出错');
+                        end
+                    end
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                else
+                    NowTheta4 =min(theta4Cango) + (max(theta4Cango)-min(theta4Cango))/2; %居中取，有更多裕度
+                    AngleSequence(5,i) = NowTheta4;
+                end
+            else
+                %说明无论如何都没办法保证稳定区间了 开始满加速度减速
+                Theta4Chazhi = AnglesEnd(4)-LastTheta4;
+                if Theta4Chazhi>0
+                    athistime = amaxtheta4;
+                elseif Theta4Chazhi<0
+                    athistime = -amaxtheta4;
+                else
+                    athistime = 0;
+                end
+                LastvTheta4tmp = LastvTheta4;
+                LastvTheta4 = LastvTheta4+athistime*tinterval;
+                if LastvTheta4tmp*LastvTheta4<0 %说明减速到0了
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %                 disp('');
+                    tf_this = AngleSequence(1,end)-AngleSequence(1,i);
+                    success = 0;
+                    while success==0
+                        [PointsSequence,success] = ManipulatorPlanningJointSpaceMethod2test(AngleSequence(5,i),AnglesEnd(4),tf_this,amaxtheta4,Vmaxtheta4,SampleTime);
+                        tf_this = 1.1*tf_this;
+                    end
+                    %到这里出来后就能退出了，把这些数据拼到AngleSequence即可
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    flagChange_tf = 1;
+                    break;
+
+
+
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                end
+
+                NowTheta4 = LastTheta4+LastvTheta4*tinterval;
+                AngleSequence(5,i) = NowTheta4;
+                LastTheta4 = NowTheta4;
+                continue;
+    %             disp('');
+    %             break;
+            end
+            LastvTheta4 = (NowTheta4-LastTheta4)/tinterval;
+            LastTheta4 = NowTheta4;
+        end
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function PlotSingularPointsOfBucketTip(lidu,StartPoint,EndPoint)
     GlobalDeclarationCommon
