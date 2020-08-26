@@ -1,6 +1,7 @@
-function jointAngle = InverseKinematics(position)
+function [jointAngle,Valid] = InverseKinematics(position)
 %输入是齿尖的转换矩阵 T50
     GlobalDeclarationCommon
+    Valid = 1;
     ZERO = 10^-6;
     M_PI = pi;
 %     nx, ny, nz;
@@ -74,6 +75,9 @@ function jointAngle = InverseKinematics(position)
 	Mtemp1 = (pow(cos(jointAngle(1))*px + sin(jointAngle(1))*py - a(2), 2) + pow(pz - d(1), 2) - pow(a(3), 2) - pow(a(4), 2)) / (2 * a(3) * a(4));
     
     if abs(Mtemp1)>1
+        Valid = 0;
+        jointAngle = [];
+        return;
         error('似乎超出了工作空间，结果不可信');
     end
 	jointAngle(3) = -abs(acos(Mtemp1));
@@ -83,12 +87,17 @@ function jointAngle = InverseKinematics(position)
 	tempm = px*cos(jointAngle(1)) + py*sin(jointAngle(1)) - a(2);
 	tempn = pz - d(1);
     if abs(tempm*tempm + tempn*tempn) <= ZERO
+        Valid = 0;
+        jointAngle = [];
         disp("error!");
         return ;
     else
         tempTwo1 = ((a(3) + a(4) * cos(jointAngle(3)))*tempn - a(4) * sin(jointAngle(3))*tempm) / (tempm*tempm + tempn*tempn);
     end
     if abs(tempTwo1)>1
+        Valid = 0;
+        jointAngle = [];
+        return;
         error('似乎超出了工作空间，结果不可信');
     end
 	jointAngle(2) = asin(tempTwo1);
