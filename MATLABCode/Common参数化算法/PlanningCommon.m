@@ -36,7 +36,9 @@ InnerEdgeUp = GetInnerEdgeOfPlaneWorkSpaceUp(0.5);
 AnglesB = [170.2708   14.5153  -41.9636  -41.0063];
 AnglesA = [-24.3390   29.3264 -120.8183  -82.6878];
 % AngleSequence = CarryAndReleaseTaskJointSpace([170,-170],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
-AngleSequence = CarryAndReleaseTaskCartesianSpace([170,-170],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
+times = tic;
+AngleSequence = CarryAndReleaseTaskCartesianSpace([160,-160],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
+toc(times)
 
 figure
 reducedSeqplot = [];
@@ -238,6 +240,35 @@ function [AngelsA,AnglesB]=RandomGenerateTWOAngles()
     AnglesB(4) = RandGenerateNumber(theta4Range(1),theta4Range(2),1);
 end
 
+function AngleSequence = GetOneJointSequence(ThetaBegin,ThetaEnd,Vmaxtheta,amaxtheta)
+    GlobalDeclarationCommon
+    
+    SampleTime = tinterval;
+    LeftTF = 0;
+    RightTF = 100; %一般不会到100秒都不到的
+    
+    tf = LeftTF +(RightTF-LeftTF)/2;
+    while RightTF-LeftTF>0.5 || isempty(AngleSequence)==1
+        AngleSequence = [];
+        for i=1:tf/SampleTime+1
+            t = (i-1)*SampleTime;
+            [theta,successtheta] = ManipulatorPlanningJointSpaceSub(ThetaBegin,ThetaEnd,tf,amaxtheta,Vmaxtheta,t,0.1,1);
+            if successtheta==1 
+                AngleSequence = [AngleSequence [t;theta]];
+            else
+                AngleSequence = [];
+                break;
+            end
+        end
+        
+        if isempty(AngleSequence)==1
+            LeftTF = tf;
+        else
+            RightTF = tf;
+        end
+        tf = LeftTF +(RightTF-LeftTF)/2;
+    end
+end
 
 function AngleSequence = CarryAndReleaseTaskJointSpace(StableRange,AnglesBegin,AnglesEnd,Vmaxtheta1,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta1,amaxtheta2,amaxtheta3,amaxtheta4)
     %20200826 思考怎么搞这个逻辑 关节空间搞还是有点问题 没办法在满足theta4的速度和加速度的同时还能满足内容物不漏
@@ -388,28 +419,77 @@ function AngleSequence = CarryAndReleaseTaskJointSpace(StableRange,AnglesBegin,A
     end
 end
 
+
 function AngleSequence = CarryAndReleaseTaskCartesianSpace(StableRange,AnglesBegin,AnglesEnd,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max)
-    [~,Matrixbegin] = ForwardKinematics(AnglesBegin);
-    [~,Matrixend] = ForwardKinematics(AnglesEnd);
+    GlobalDeclarationCommon
+    [Matrixbegin,~] = ForwardKinematics(AnglesBegin);
+    [Matrixend,~] = ForwardKinematics(AnglesEnd);
     DirectionVector = Matrixend(1:3,4)-Matrixbegin(1:3,4);
     DirectionVector = DirectionVector/norm(DirectionVector);
     
+    FlagHaveSequence0 = 1;
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Angle = GetAngleOfBucketWithGround(AnglesBegin(1),AnglesBegin(2),AnglesBegin(3),AnglesBegin(4));
+    if Angle<0
+        Angle = 360+Angle;
+    end
+    StableRangetmp = StableRange;
+    for i = 1:size(StableRangetmp,2)
+        if StableRangetmp(i)<0
+            StableRangetmp(i) = 360+StableRangetmp(i);
+        end
+    end
+    if isempty(GetIntersection(StableRangetmp,Angle))==0 %说明一开始就已经保证稳定了 并不需要转化到稳定区域
+        Matrixbegin1 = Matrixbegin;
+        FlagHaveSequence0 = 0;
+    else %否则需要转化到稳定区域
+        jointAngle = AnglesBegin;
+        [StableTheta4,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),StableRange);
+        if YES == 0
+            error('此时无法按照先搬运东西再卸载释放东西的顺序完成任务');
+        end
+        avgstore = [];
+        for i = 1:size(StableTheta4,2)
+            avgstore = [avgstore mean(StableTheta4{i})];
+        end
+        for i=1:size(avgstore,2)
+            if avgstore(i)<0
+                avgstore(i) = 360+avgstore(i);
+            end
+        end
+        theta4selected = mean(avgstore);
+        theta4selected = legalizAnger(theta4selected);
+
+        [Matrixbegin1,~] = ForwardKinematics([jointAngle(1),jointAngle(2),jointAngle(3),theta4selected]);
+        if IsAnglesInLimitRange([jointAngle(1),jointAngle(2),jointAngle(3),theta4selected])==0
+            error('程序逻辑出错')
+        end
+    end
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+        
+        
+        
+        
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %到这一步时默认begin能够让铲斗保持稳定
-    RightUpper = Matrixbegin;
+    RightUpper = Matrixbegin1;
     if DirectionVector(3)>0
         RightUpper(3,4) = 3000; %二分法求垂直上升最大能上升的临界值
     elseif DirectionVector(3)<0
         RightUpper(3,4) = -3000;
     else
-        RightUpper = Matrixbegin; %等于0时不进行垂直方向的行走
+        RightUpper = Matrixbegin1; %等于0时不进行垂直方向的行走
     end
-    LeftUpper = Matrixbegin;
-    Mid = Matrixbegin;
+    LeftUpper = Matrixbegin1;
+    Mid = Matrixbegin1;
     Mid(1:3,4) = (LeftUpper(1:3,4)+RightUpper(1:3,4))/2;
     while norm(RightUpper(1:3,4)-LeftUpper(1:3,4))>5
         norm(RightUpper(1:3,4)-LeftUpper(1:3,4))
-        [jointAngle,Valid] = InverseKinematics(Mid);
+        [jointAngle,Valid] = InverseKinematicsT40(Mid);
+        
         if Valid == 1
             [~,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),StableRange);
         else
@@ -430,14 +510,59 @@ function AngleSequence = CarryAndReleaseTaskCartesianSpace(StableRange,AnglesBeg
         %说明垂直方向上不能保持不漏的过去
     end
     
-    RightUpper = Mid1;
+    [jointAngle,Valid] = InverseKinematicsT40(Mid1);
+    if Valid==1
+        [StableTheta4,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),StableRange);
+        if YES == 0
+            error('程序逻辑出错');
+        end
+        avgstore = [];
+        for i = 1:size(StableTheta4,2)
+            avgstore = [avgstore mean(StableTheta4{i})];
+        end
+        for i=1:size(avgstore,2)
+            if avgstore(i)<0
+                avgstore(i) = 360+avgstore(i);
+            end
+        end
+        theta4selected = mean(avgstore);
+        theta4selected = legalizAnger(theta4selected);
+        
+        [Mid1,~] = ForwardKinematics([jointAngle(1),jointAngle(2),jointAngle(3),theta4selected]);
+        if IsAnglesInLimitRange([jointAngle(1),jointAngle(2),jointAngle(3),theta4selected])==0
+            error('程序逻辑出错')
+        end
+    else
+        error('已经不能反解了！');
+    end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    [jointAngleCurrent,Valid] = InverseKinematicsT40(Mid1);
+    if Valid == 1
+        AngleSequence1_5 = GetOneJointSequence(jointAngleCurrent(1),AnglesEnd(1),Vtheta1Max,atheta1max);
+    else
+        error('已经不能反解了！');
+    end
+    AngleSequence1_5 = [AngleSequence1_5;jointAngleCurrent(2)*ones(1,size(AngleSequence1_5,2));jointAngleCurrent(3)*ones(1,size(AngleSequence1_5,2));jointAngleCurrent(4)*ones(1,size(AngleSequence1_5,2))];
+    
+    [Mid1_5,~] = ForwardKinematics(AngleSequence1_5(2:5,end));
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    RightUpper = Mid1_5;
     RightUpper(1:2,4) = RightUpper(1:2,4)+3000*DirectionVector(1:2,1)/norm(DirectionVector(1:2,1));
-    LeftUpper = Mid1;
-    Mid = Mid1;
+    LeftUpper = Mid1_5;
+    Mid = Mid1_5;
     Mid(1:3,4) = (LeftUpper(1:3,4)+RightUpper(1:3,4))/2;
-    while norm(RightUpper(1:3,4)-LeftUpper(1:3,4))>5
+    while norm(RightUpper(1:3,4)-LeftUpper(1:3,4))>5 
         norm(RightUpper(1:3,4)-LeftUpper(1:3,4))
-        [jointAngle,Valid] = InverseKinematics(Mid);
+        [jointAngle,Valid] = InverseKinematicsT40(Mid);
+       
         if Valid == 1
             [~,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),StableRange);
         else
@@ -452,14 +577,70 @@ function AngleSequence = CarryAndReleaseTaskCartesianSpace(StableRange,AnglesBeg
     end
     Mid2 = LeftUpper;
     
-%     [Matrixbegin Mid1 Mid2 Matrixend] %这是最终需要经历的中间点
+    if dot((Matrixend(1:2,4)-Mid2(1:2,4)),(Matrixend(1:2,4)-Mid1_5(1:2,4)))<0
+        Mid2(1:2,4) = Matrixend(1:2,4);
+    else
+        %说明水平向目标的方向上不能保持不漏的过去
+    end
+    
+    [jointAngle,Valid] = InverseKinematicsT40(Mid2);
+    if Valid==1
+        [StableTheta4,YES] = groundAngleRangeTOtheta4Range(jointAngle(1),jointAngle(2),jointAngle(3),StableRange);
+        if YES == 0
+            error('程序逻辑出错');
+        end
+        avgstore = [];
+        for i = 1:size(StableTheta4,2)
+            avgstore = [avgstore mean(StableTheta4{i})];
+        end
+        for i=1:size(avgstore,2)
+            if avgstore(i)<0
+                avgstore(i) = 360+avgstore(i);
+            end
+        end
+        theta4selected = mean(avgstore);
+        theta4selected = legalizAnger(theta4selected);
+        
+        [Mid2,~] = ForwardKinematics([jointAngle(1),jointAngle(2),jointAngle(3),theta4selected]);
+        if IsAnglesInLimitRange([jointAngle(1),jointAngle(2),jointAngle(3),theta4selected])==0
+            error('程序逻辑出错')
+        end
+    else
+        error('已经不能反解了！');
+    end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
 
     
-    AngleSequence = BucketTipLinearPlanningCPP(Matrixbegin,Mid1,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max);
-    AngleSequence = BucketTipLinearPlanningCPP(Mid1,Mid2,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max);
-    AngleSequence = BucketTipLinearPlanningCPP(Mid2,Matrixend,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max);
-
-
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if FlagHaveSequence0==1
+        AngleSequence0 = BucketRotateCenterLinearPlanningCPP(Matrixbegin,Matrixbegin1,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max);
+    else
+        AngleSequence0 = [0;AnglesBegin'];
+    end
+    AngleSequence1 = BucketRotateCenterLinearPlanningCPP(Matrixbegin1,Mid1,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max);
+%     AngleSequence1_5;
+    AngleSequence2 = BucketRotateCenterLinearPlanningCPP(Mid1_5,Mid2,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max);
+    
+    theta1tmp = GetOneJointSequence(AngleSequence1(2,1),AngleSequence2(2,end),Vtheta1Max,atheta1max);
+    theta1tmp = theta1tmp(2,:);
+    theta234tmp = [AngleSequence1(3:5,:),AngleSequence2(3:5,:)];
+    if size(theta1tmp,2)>size(theta234tmp,2)
+        for i = 1:size(theta1tmp,2)-size(theta234tmp,2)
+            theta234tmp = [theta234tmp theta234tmp(:,end)];
+        end
+    elseif size(theta1tmp,2)<size(theta234tmp,2)
+        for i = 1:size(theta234tmp,2)-size(theta1tmp,2)
+            theta1tmp = [theta1tmp theta1tmp(:,end)];
+        end
+    end
+    theta1234 = [theta1tmp;theta234tmp];
+    
+    AngleSequence3 = BucketRotateCenterLinearPlanningCPP(Mid2,Matrixend,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max);
+    AngleSequence = [AngleSequence0(2:5,:) theta1234 AngleSequence3(2:5,:)];
+    AngleSequence = [0:tinterval:(size(AngleSequence,2)-1)*tinterval;AngleSequence];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 
 
@@ -2804,18 +2985,21 @@ function BucketTipLinearPlanning(BeginPoint,EndPoint,Begin_Bucket_WithGround,End
     
 end
 
-function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max)%
-%这是转cpp的函数
+function Sequence = BucketRotateCenterLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max)
+    %这是待转cpp的函数 输入的两个其次转换矩阵是铲斗旋转中心的 规划一条直线
     GlobalDeclarationCommon
     Tsequence = ctraj(Matrixbegin,Matrixend,200);
     posStore = [];
     jointangleSeq = [];
     for i=1:size(Tsequence,3)
+        if i==31
+            disp('');
+        end
         tform = Tsequence(:,:,i);
-        jointangle = InverseKinematics(tform);
+        jointangle = InverseKinematicsT40(tform);
         if IsAnglesInLimitRange(jointangle) == 0
 %             norm(BeginPoint-EndPoint)
-            warning('设计的规划算法使得角度超出了物理限制 或者角度太刁钻,最终输出的序列不是完整到达目标位置的');
+            warning('设计的规划算法使得角度超出了物理限制.原因可能是插值过程中只是机械的先加速后匀速最后减速，导致某一时刻theta4超出了范围。 最终输出的序列不是完整到达目标位置的');
             break;
 %             disp('');
         end
@@ -2884,67 +3068,213 @@ function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,
     timethis = (size(jointangleSeq,1)-1)*(timesBEISHU*tinterval);
     Sequence = [Sequence,[timethis;jointangleSeq(size(jointangleSeq,1),:)']];
     
-    degq = jointangleSeq;
-    degdq = djointangleSeq;
-    degddq = ddjointangleSeq;
-    figure
-    subplot(631)
-    plot(1:size(degdq,1),degdq(:,2),'-');
-    title('vtheta2')
-    subplot(632)
-    plot(1:size(degdq,1),degdq(:,3),'-');
-    title('vtheta3')
-    subplot(633)
-    plot(1:size(degdq,1),degdq(:,4),'-');
-    title('vtheta4')
+%     degq = jointangleSeq;
+%     degdq = djointangleSeq;
+%     degddq = ddjointangleSeq;
+%     figure
+%     subplot(631)
+%     plot(1:size(degdq,1),degdq(:,2),'-');
+%     title('vtheta2')
+%     subplot(632)
+%     plot(1:size(degdq,1),degdq(:,3),'-');
+%     title('vtheta3')
+%     subplot(633)
+%     plot(1:size(degdq,1),degdq(:,4),'-');
+%     title('vtheta4')
+% 
+%     subplot(634)
+%     plot(1:size(degddq,1),degddq(:,2),'-');
+%     title('atheta2')
+%     subplot(635)
+%     plot(1:size(degddq,1),degddq(:,3),'-');
+%     title('atheta3')
+%     subplot(636)
+%     plot(1:size(degddq,1),degddq(:,4),'-');
+%     title('atheta4')
+% 
+%     subplot(637)
+%     plot(1:size(degq,1),degq(:,2),'-');
+%     title('theta2')
+%     subplot(638)
+%     plot(1:size(degq,1),degq(:,3),'-');
+%     title('theta3')
+%     subplot(639)
+%     plot(1:size(degq,1),degq(:,4),'-');
+%     title('theta4')
+% 
+%     subplot(6,3,10)
+%     plot(1:size(dposStore,1),dposStore,'-');
+%     title('v')
+% 
+%     subplot(6,3,11)
+%     plot(1:size(ddposStore,1),ddposStore,'-');
+%     title('a')
+% 
+%     subplot(6,3,12)
+%     plot(posStore(:,1),posStore(:,2),'-');
+%     title('xy')
+% 
+%     subplot(6,3,13)
+%     plot(posStore(:,1),posStore(:,3),'-');
+%     title('xz')
+% 
+%     subplot(6,3,14)
+%     plot(posStore(:,2),posStore(:,3),'-');
+%     title('yz')
+%     
+%     subplot(6,3,15)
+%     plot(1:size(degdq,1),degdq(:,1),'-');
+%     title('vtheta1')
+%     
+%     subplot(6,3,16)
+%     plot(1:size(degddq,1),degddq(:,1),'-');
+%     title('atheta1')
+end
 
-    subplot(634)
-    plot(1:size(degddq,1),degddq(:,2),'-');
-    title('atheta2')
-    subplot(635)
-    plot(1:size(degddq,1),degddq(:,3),'-');
-    title('atheta3')
-    subplot(636)
-    plot(1:size(degddq,1),degddq(:,4),'-');
-    title('atheta4')
-
-    subplot(637)
-    plot(1:size(degq,1),degq(:,2),'-');
-    title('theta2')
-    subplot(638)
-    plot(1:size(degq,1),degq(:,3),'-');
-    title('theta3')
-    subplot(639)
-    plot(1:size(degq,1),degq(:,4),'-');
-    title('theta4')
-
-    subplot(6,3,10)
-    plot(1:size(dposStore,1),dposStore,'-');
-    title('v')
-
-    subplot(6,3,11)
-    plot(1:size(ddposStore,1),ddposStore,'-');
-    title('a')
-
-    subplot(6,3,12)
-    plot(posStore(:,1),posStore(:,2),'-');
-    title('xy')
-
-    subplot(6,3,13)
-    plot(posStore(:,1),posStore(:,3),'-');
-    title('xz')
-
-    subplot(6,3,14)
-    plot(posStore(:,2),posStore(:,3),'-');
-    title('yz')
+function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max)%
+%这是转cpp的函数 输入的两个其次转换矩阵是齿尖的 规划一条直线
+    GlobalDeclarationCommon
+    Tsequence = ctraj(Matrixbegin,Matrixend,200);
+    posStore = [];
+    jointangleSeq = [];
+    for i=1:size(Tsequence,3)
+        if i==31
+            disp('');
+        end
+        tform = Tsequence(:,:,i);
+        jointangle = InverseKinematics(tform);
+        if IsAnglesInLimitRange(jointangle) == 0
+%             norm(BeginPoint-EndPoint)
+            warning('设计的规划算法使得角度超出了物理限制.原因可能是插值过程中只是机械的先加速后匀速最后减速，导致某一时刻theta4超出了范围。 最终输出的序列不是完整到达目标位置的');
+            break;
+%             disp('');
+        end
+        posStore = [posStore;tform(1:3,4)'];
+        jointangleSeq(i,:) = jointangle;
+    end
     
-    subplot(6,3,15)
-    plot(1:size(degdq,1),degdq(:,1),'-');
-    title('vtheta1')
     
-    subplot(6,3,16)
-    plot(1:size(degddq,1),degddq(:,1),'-');
-    title('atheta1')
+%     djointangleSeq = [0 2*Vtheta2Max 2*Vtheta3Max 2*Vtheta4Max];
+%     ddjointangleSeq = [0 2*atheta2max 2*atheta3max 2*atheta4max];
+    Leftbeishu = 0;
+    Rightbeishu = 4000; %这意味着40秒走最多8cm 一秒2mm 基本可以认定是静止的了
+    timesBEISHU = (Leftbeishu+Rightbeishu)/2;
+    FLAGWHILE = 0;
+    while FLAGWHILE<2
+        djointangleSeq = [];
+        for i=1:size(jointangleSeq,1)-1
+            djointangleSeq(i,:) = (jointangleSeq(i+1,:)-jointangleSeq(i,:))/(timesBEISHU*tinterval);
+        end
+        ddjointangleSeq=[];
+        for i=1:size(djointangleSeq,1)-1
+            ddjointangleSeq(i,:) = (djointangleSeq(i+1,:)-djointangleSeq(i,:))/(timesBEISHU*tinterval);
+        end
+        dposStore = [];
+        for i=1:size(posStore,1)-1
+            dposStore(i,:) = norm(posStore(i+1,:)-posStore(i,:))/(timesBEISHU*tinterval);
+        end
+        ddposStore = [];
+        for i=1:size(dposStore,1)-1
+            ddposStore(i,:) = (dposStore(i+1,:)-dposStore(i,:))/(timesBEISHU*tinterval);
+        end
+        
+        if Rightbeishu-Leftbeishu<=1 %表明二分法精度到0.1 最后得到timesBEISHU的临界取值
+            FLAGWHILE = FLAGWHILE+1;
+            timesBEISHU = Rightbeishu;
+            timesBEISHU = ceil(timesBEISHU);
+            if max(abs(djointangleSeq(:,1)))>Vtheta1Max==1 || max(abs(ddjointangleSeq(:,1)))>atheta1max==1 || ...
+                max(abs(djointangleSeq(:,2)))>Vtheta2Max==1 || max(abs(djointangleSeq(:,3)))>Vtheta3Max==1 || max(abs(djointangleSeq(:,4)))>Vtheta4Max==1 ...
+                || max(abs(ddjointangleSeq(:,2)))>atheta2max==1||max(abs(ddjointangleSeq(:,3)))>atheta3max==1||max(abs(ddjointangleSeq(:,4)))>atheta4max==1
+                if FLAGWHILE==2
+                    error('设置的精度出错')
+                end
+            end
+        else
+            if max(abs(djointangleSeq(:,1)))>Vtheta1Max==1 || max(abs(ddjointangleSeq(:,1)))>atheta1max==1 || ...
+                max(abs(djointangleSeq(:,2)))>Vtheta2Max==1 || max(abs(djointangleSeq(:,3)))>Vtheta3Max==1 || max(abs(djointangleSeq(:,4)))>Vtheta4Max==1 ...
+                || max(abs(ddjointangleSeq(:,2)))>atheta2max==1||max(abs(ddjointangleSeq(:,3)))>atheta3max==1||max(abs(ddjointangleSeq(:,4)))>atheta4max==1
+                Leftbeishu = timesBEISHU;
+            else
+                Rightbeishu = timesBEISHU;
+            end
+            timesBEISHU = Leftbeishu + (Rightbeishu-Leftbeishu)/2;
+        end
+    end
+    
+    Sequence = []; %最终返回带时间戳的各角度
+    for i=1:size(jointangleSeq,1)-1
+        timethis = (i-1)*(timesBEISHU*tinterval);
+        Sequence = [Sequence,[timethis;jointangleSeq(i,:)']];
+        tmp = jointangleSeq(i+1,:)-jointangleSeq(i,:);
+        tmp = tmp/timesBEISHU;
+        for j=1:timesBEISHU-1
+            Sequence = [Sequence,[timethis+j*tinterval;Sequence(2:5,end)+tmp']];
+        end
+    end
+    timethis = (size(jointangleSeq,1)-1)*(timesBEISHU*tinterval);
+    Sequence = [Sequence,[timethis;jointangleSeq(size(jointangleSeq,1),:)']];
+    
+%     degq = jointangleSeq;
+%     degdq = djointangleSeq;
+%     degddq = ddjointangleSeq;
+%     figure
+%     subplot(631)
+%     plot(1:size(degdq,1),degdq(:,2),'-');
+%     title('vtheta2')
+%     subplot(632)
+%     plot(1:size(degdq,1),degdq(:,3),'-');
+%     title('vtheta3')
+%     subplot(633)
+%     plot(1:size(degdq,1),degdq(:,4),'-');
+%     title('vtheta4')
+% 
+%     subplot(634)
+%     plot(1:size(degddq,1),degddq(:,2),'-');
+%     title('atheta2')
+%     subplot(635)
+%     plot(1:size(degddq,1),degddq(:,3),'-');
+%     title('atheta3')
+%     subplot(636)
+%     plot(1:size(degddq,1),degddq(:,4),'-');
+%     title('atheta4')
+% 
+%     subplot(637)
+%     plot(1:size(degq,1),degq(:,2),'-');
+%     title('theta2')
+%     subplot(638)
+%     plot(1:size(degq,1),degq(:,3),'-');
+%     title('theta3')
+%     subplot(639)
+%     plot(1:size(degq,1),degq(:,4),'-');
+%     title('theta4')
+% 
+%     subplot(6,3,10)
+%     plot(1:size(dposStore,1),dposStore,'-');
+%     title('v')
+% 
+%     subplot(6,3,11)
+%     plot(1:size(ddposStore,1),ddposStore,'-');
+%     title('a')
+% 
+%     subplot(6,3,12)
+%     plot(posStore(:,1),posStore(:,2),'-');
+%     title('xy')
+% 
+%     subplot(6,3,13)
+%     plot(posStore(:,1),posStore(:,3),'-');
+%     title('xz')
+% 
+%     subplot(6,3,14)
+%     plot(posStore(:,2),posStore(:,3),'-');
+%     title('yz')
+%     
+%     subplot(6,3,15)
+%     plot(1:size(degdq,1),degdq(:,1),'-');
+%     title('vtheta1')
+%     
+%     subplot(6,3,16)
+%     plot(1:size(degddq,1),degddq(:,1),'-');
+%     title('atheta1')
 end
 
 function Sequence = BucketTipLinearPlanningROBOTICSTOOL(BeginPoint,EndPoint,Begin_Bucket_WithGround,End_Bucket_WithGround,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max)

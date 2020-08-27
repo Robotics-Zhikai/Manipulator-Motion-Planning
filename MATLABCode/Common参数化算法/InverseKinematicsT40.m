@@ -1,5 +1,5 @@
-function [jointAngle,Valid] = InverseKinematics(position)
-%输入是齿尖的转换矩阵 T50
+function [jointAngle,Valid] = InverseKinematicsT40(position)
+%输入是铲斗旋转中心的转换矩阵 T40
     GlobalDeclarationCommon
     Valid = 1;
     ZERO = 10^-6;
@@ -45,11 +45,11 @@ function [jointAngle,Valid] = InverseKinematics(position)
 	d(3) = d3;
 	d(4) = d4;
     
-    transForm(1,:) = [ 1, 0, 0, -tool];
-    transForm(2,:) = [ 0, 1, 0,     0];
-    transForm(3,:) = [ 0, 0, 1,     0];
-    transForm(4,:) = [ 0, 0, 0,     1];
-    position = position*transForm;
+%     transForm(1,:) = [ 1, 0, 0, -tool];
+%     transForm(2,:) = [ 0, 1, 0,     0];
+%     transForm(3,:) = [ 0, 0, 1,     0];
+%     transForm(4,:) = [ 0, 0, 0,     1];
+%     position = position*transForm;
     
     
     nx = position(1,1);
