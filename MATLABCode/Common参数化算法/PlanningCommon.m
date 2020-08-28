@@ -33,8 +33,13 @@ InnerEdgeUp = GetInnerEdgeOfPlaneWorkSpaceUp(0.5);
 [AnglesA,AnglesB]=RandomGenerateTWOAngles();
 % AnglesA = [-53.4025   29.7896  -65.6209  -28.5359];
 % AnglesB = [150.1897  -15.9895  -46.7080   -2.0152];
-AnglesB = [170.2708   14.5153  -41.9636  -41.0063];
-AnglesA = [-24.3390   29.3264 -120.8183  -82.6878];
+% AnglesB = [170.2708   14.5153  -41.9636  -41.0063];
+% AnglesA = [164.3390   29.3264 -120.8183  -82.6878];
+% AnglesA = [-17.9953  -19.1913  -42.7949   24.5571] ;
+% AnglesB = [-8.6419  -25.4489  -53.4900  -59.3351];
+AnglesA = [134.4587  -38.9548 -103.2120    1.6915];
+AnglesB = [-104.9925   18.6639 -120.3572    7.4600];
+
 % AngleSequence = CarryAndReleaseTaskJointSpace([170,-170],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
 times = tic;
 AngleSequence = CarryAndReleaseTaskCartesianSpace([160,-160],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
@@ -42,7 +47,7 @@ toc(times)
 
 figure
 reducedSeqplot = [];
-for i=1:ceil(size(AngleSequence,2)/80):size(AngleSequence,2)
+for i=1:ceil(size(AngleSequence,2)/40):size(AngleSequence,2)
     reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
 end
 PeterCorkePlotRobot(reducedSeqplot');
@@ -504,7 +509,7 @@ function AngleSequence = CarryAndReleaseTaskCartesianSpace(StableRange,AnglesBeg
     end
     Mid1 = LeftUpper;
     
-    if abs(Mid1(3,4))>abs(Matrixend(3,4))
+    if isempty(GetIntersection(Matrixend(3,4),[Mid1(3,4),Matrixbegin1(3,4)]))==0 && abs(Mid1(3,4))>abs(Matrixend(3,4))
         Mid1(3,4) = Matrixend(3,4);
     else
         %说明垂直方向上不能保持不漏的过去
@@ -626,18 +631,38 @@ function AngleSequence = CarryAndReleaseTaskCartesianSpace(StableRange,AnglesBeg
     theta1tmp = GetOneJointSequence(AngleSequence1(2,1),AngleSequence2(2,end),Vtheta1Max,atheta1max);
     theta1tmp = theta1tmp(2,:);
     theta234tmp = [AngleSequence1(3:5,:),AngleSequence2(3:5,:)];
+    
+    FlagMode = 0;
+    
     if size(theta1tmp,2)>size(theta234tmp,2)
+        FlagMode = 1;
+        ChaZhi = size(theta1tmp,2)-size(theta234tmp,2);
         for i = 1:size(theta1tmp,2)-size(theta234tmp,2)
             theta234tmp = [theta234tmp theta234tmp(:,end)];
         end
     elseif size(theta1tmp,2)<size(theta234tmp,2)
+        FlagMode = 2;
         for i = 1:size(theta234tmp,2)-size(theta1tmp,2)
             theta1tmp = [theta1tmp theta1tmp(:,end)];
         end
     end
-    theta1234 = [theta1tmp;theta234tmp];
     
+    theta1234 = [theta1tmp;theta234tmp];
     AngleSequence3 = BucketRotateCenterLinearPlanningCPP(Mid2,Matrixend,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max);
+    
+    if FlagMode == 1
+        splitNum = 5;
+        if fix(ChaZhi/splitNum)~=0
+            if size(AngleSequence3,2)>=fix(ChaZhi/splitNum)+1
+                theta1234(2:4,end-fix(ChaZhi/splitNum):end)=AngleSequence3(3:5,1:fix(ChaZhi/splitNum)+1);
+                AngleSequence3(:,1:fix(ChaZhi/splitNum)) = [];
+            end
+        end
+    end
+    
+    
+    
+    
     AngleSequence = [AngleSequence0(2:5,:) theta1234 AngleSequence3(2:5,:)];
     AngleSequence = [0:tinterval:(size(AngleSequence,2)-1)*tinterval;AngleSequence];
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2988,7 +3013,7 @@ end
 function Sequence = BucketRotateCenterLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max)
     %这是待转cpp的函数 输入的两个其次转换矩阵是铲斗旋转中心的 规划一条直线
     GlobalDeclarationCommon
-    Tsequence = ctraj(Matrixbegin,Matrixend,200);
+    Tsequence = ctraj(Matrixbegin,Matrixend,50);
     posStore = [];
     jointangleSeq = [];
     for i=1:size(Tsequence,3)
