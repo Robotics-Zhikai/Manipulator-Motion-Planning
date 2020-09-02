@@ -88,7 +88,7 @@ close all
 
 
 %%
-[PointA,BeginAngelBucketWithGround,PointB,EndAngelBucketWithGround,angleA,angleB] = RandGenratePointDirectLineBucketTip([200 250]);
+[PointA,BeginAngelBucketWithGround,PointB,EndAngelBucketWithGround,angleA,angleB] = RandGenratePointDirectLineBucketTip([500 550]);
 [Theta4Range,YES] = groundAngleRangeTOtheta4Range(angleA(1),angleA(2),angleA(3),[BeginAngelBucketWithGround,BeginAngelBucketWithGround]);
 [Theta4Range1,YES1] = groundAngleRangeTOtheta4Range(angleB(1),angleB(2),angleB(3),[EndAngelBucketWithGround,EndAngelBucketWithGround]);
 if abs(Theta4Range{1}-angleA(4))>0.001 || abs(Theta4Range1{1}-angleB(4))>0.001
@@ -143,6 +143,32 @@ PlotTheta1234(result(1),result(2),result(3),result(4));
 
 Sequence = BucketTipLinearPlanningROBOTICSTOOL(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,35,35,35,35,25,25,25,25);
 %明天封装个可视化函数 20200820
+figure
+for i =1:size(Sequence,2)
+    [position1,position2] = ForwardKinematics([Sequence(2,i),Sequence(3,i),Sequence(4,i),Sequence(5,i)]);
+    subplot(331)
+    plot(position2(1,4),position2(2,4),'.');
+    hold on 
+    subplot(332)
+    plot(position2(1,4),position2(3,4),'.');
+    hold on 
+    subplot(333)
+    plot(position2(2,4),position2(3,4),'.');
+    hold on 
+    subplot(334)
+    plot(i,Sequence(2,i),'.');
+    hold on 
+    subplot(335)
+    plot(i,Sequence(3,i),'.');
+    hold on 
+    subplot(336)
+    plot(i,Sequence(4,i),'.');
+    hold on 
+    subplot(337)
+    plot(i,Sequence(5,i),'.');
+    hold on 
+    
+end
 
 % figure
 reducedSeqplot = [];
@@ -169,6 +195,8 @@ PeterCorkePlotRobot(reducedSeqplot');
 
 
 %%
+
+GlobalDeclarationCommon
 %这是铲斗旋转中心的规划
 % PointA = [-32.1682 -588.1967  218.8374];
 % PointB = [-30.6171 -538.7770  260.6377];
@@ -263,7 +291,7 @@ end
 
 % result = mathAtan2(1,2)
 
-
+%%
 function [AngelsA,AnglesB]=RandomGenerateTWOAngles()
     GlobalDeclarationCommon
     AngelsA(1) = RandGenerateNumber(theta1Range(1),theta1Range(2),1);
@@ -3176,6 +3204,23 @@ function [Sequence,IsComplete] = BucketRotateCenterLinearPlanningCPP(Matrixbegin
         djointangleSeq = [];
         for i=1:size(jointangleSeq,1)-1
             djointangleSeq(i,:) = (jointangleSeq(i+1,:)-jointangleSeq(i,:))/(timesBEISHU*tinterval);
+            
+            tmpChazhithis = jointangleSeq(i+1,:)-jointangleSeq(i,:);
+            if isempty(find(abs(tmpChazhithis)>180))==0 %避免出现(-180,180]体系下的角度突变
+                foundIndex = find(tmpChazhithis>180);
+                for thisi = 1:size(foundIndex,2)
+                    if jointangleSeq(i+1,foundIndex(thisi))<0 
+                        tmpi_1 = 360+jointangleSeq(i+1,foundIndex(thisi));
+                        tmpi = jointangleSeq(i,foundIndex(thisi));
+                    elseif jointangleSeq(i+1,foundIndex(thisi))>0 
+                        tmpi_1 = jointangleSeq(i+1,foundIndex(thisi))-360;
+                        tmpi = jointangleSeq(i,foundIndex(thisi));
+                    end
+                    djointangleSeq(i,foundIndex(thisi))=(tmpi_1-tmpi)/(timesBEISHU*tinterval);
+                end
+            else
+%                 djointangleSeq(i,:) = (jointangleSeq(i+1,:)-jointangleSeq(i,:))/(timesBEISHU*tinterval);
+            end
         end
         ddjointangleSeq=[];
         for i=1:size(djointangleSeq,1)-1
@@ -3292,7 +3337,7 @@ end
 function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,Vtheta2Max,Vtheta3Max,Vtheta4Max,atheta1max,atheta2max,atheta3max,atheta4max)%
 %这是转cpp的函数 输入的两个其次转换矩阵是齿尖的 规划一条直线
     GlobalDeclarationCommon
-    Tsequence = ctraj(Matrixbegin,Matrixend,200);
+    Tsequence = ctraj(Matrixbegin,Matrixend,50);
     posStore = [];
     jointangleSeq = [];
     for i=1:size(Tsequence,3)
@@ -3322,6 +3367,24 @@ function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,
         djointangleSeq = [];
         for i=1:size(jointangleSeq,1)-1
             djointangleSeq(i,:) = (jointangleSeq(i+1,:)-jointangleSeq(i,:))/(timesBEISHU*tinterval);
+            
+            tmpChazhithis = jointangleSeq(i+1,:)-jointangleSeq(i,:);
+            if isempty(find(abs(tmpChazhithis)>180))==0 %避免出现(-180,180]体系下的角度突变
+                foundIndex = find(tmpChazhithis>180);
+                for thisi = 1:size(foundIndex,2)
+                    if jointangleSeq(i+1,foundIndex(thisi))<0 
+                        tmpi_1 = 360+jointangleSeq(i+1,foundIndex(thisi));
+                        tmpi = jointangleSeq(i,foundIndex(thisi));
+                    elseif jointangleSeq(i+1,foundIndex(thisi))>0 
+                        tmpi_1 = jointangleSeq(i+1,foundIndex(thisi))-360;
+                        tmpi = jointangleSeq(i,foundIndex(thisi));
+                    end
+                    djointangleSeq(i,foundIndex(thisi))=(tmpi_1-tmpi)/(timesBEISHU*tinterval);
+                end
+            else
+%                 djointangleSeq(i,:) = (jointangleSeq(i+1,:)-jointangleSeq(i,:))/(timesBEISHU*tinterval);
+            end
+            
         end
         ddjointangleSeq=[];
         for i=1:size(djointangleSeq,1)-1
@@ -3415,15 +3478,15 @@ function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,
 %     title('a')
 % 
 %     subplot(6,3,12)
-%     plot(posStore(:,1),posStore(:,2),'-');
+%     plot(posStore(:,1),posStore(:,2),'.');
 %     title('xy')
 % 
 %     subplot(6,3,13)
-%     plot(posStore(:,1),posStore(:,3),'-');
+%     plot(posStore(:,1),posStore(:,3),'.');
 %     title('xz')
 % 
 %     subplot(6,3,14)
-%     plot(posStore(:,2),posStore(:,3),'-');
+%     plot(posStore(:,2),posStore(:,3),'.');
 %     title('yz')
 %     
 %     subplot(6,3,15)

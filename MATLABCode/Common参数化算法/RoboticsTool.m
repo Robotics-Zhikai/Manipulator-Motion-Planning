@@ -121,7 +121,16 @@ ML3.qlim = [deg2rad(theta3Range(1)) deg2rad(theta3Range(2))];
 ML4.qlim = [deg2rad(theta4Range(1)) deg2rad(theta4Range(2))];
 ML5.qlim = [0 0];
 
-robotPeterCorke=SerialLink([ML1 ML2 ML3 ML4 ML5],'name','ROBOT');
+robotPeterCorke=SerialLink([ML1 ML2 ML3 ML4 ML5],'name','Excavator');
+robotPeterCorke2 = SerialLink([ML1 ML2 ML3 ML4],'name','Excavator');
+robotPeterCorke3 = SerialLink([ML1 ML2 ML3 ],'name','Excavator');
+robotPeterCorke4 = SerialLink([ML1 ML2],'name','Excavator');
+robotPeterCorke5 = SerialLink([ML1 ],'name','Excavator');
+% robotPeterCorke.teach();
+% robotPeterCorke2.teach();
+% robotPeterCorke3.teach();
+% robotPeterCorke4.teach();
+% robotPeterCorke5.teach();
 % robot.teach();
 % robot.plot([0,0,0,deg2rad(theta4Range(2)),0]);
 % modmyt06 = robot.fkine([2.5468 0.8809 -2.1178 0.4141 0]);%不在意各关节的限制范围
