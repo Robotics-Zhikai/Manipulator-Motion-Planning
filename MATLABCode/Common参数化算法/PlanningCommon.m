@@ -224,7 +224,11 @@ PointB = [ -101.7682 -521.2970  119.7108];
 
 PointA = [-508.0082  290.3112  130.1380];
 PointB = [-361.0164  210.8165 -170.4685];
-[PointA,PointB] = RandGenratePointDirectLine([300 350]);
+
+PointA = [16.5855 -385.8946   60.7661];
+PointB = [ 31.8575 -580.2180  298.7035];
+
+% [PointA,PointB] = RandGenratePointDirectLine([300 350]);
 
 % figure
 % plot3(PointA(1),PointA(2),PointA(3),'o');
@@ -1558,6 +1562,8 @@ end
 function YES = IsDirectReachablePlaneSub(CH,waitforprocess,anotherPoint) %判断直达的其中一些情况判断 一个圆外的点，有两条切线
     num = 0;
     for i=1:size(CH,1)
+%         norm(CH(i,:)-waitforprocess)
+%         i
         if norm(CH(i,:)-waitforprocess)<0.001
             num = i;
             break;
@@ -3264,8 +3270,33 @@ function [Sequence,IsComplete] = BucketRotateCenterLinearPlanningCPP(Matrixbegin
         Sequence = [Sequence,[timethis;jointangleSeq(i,:)']];
         tmp = jointangleSeq(i+1,:)-jointangleSeq(i,:);
         tmp = tmp/timesBEISHU;
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        tmpChazhithis = jointangleSeq(i+1,:)-jointangleSeq(i,:);
+        if isempty(find(abs(tmpChazhithis)>180))==0 %避免出现(-180,180]体系下的角度突变
+            foundIndex = find(tmpChazhithis>180);
+            for thisi = 1:size(foundIndex,2)
+                if jointangleSeq(i+1,foundIndex(thisi))<0 
+                    tmpi_1 = 360+jointangleSeq(i+1,foundIndex(thisi));
+                    tmpi = jointangleSeq(i,foundIndex(thisi));
+                elseif jointangleSeq(i+1,foundIndex(thisi))>0 
+                    tmpi_1 = jointangleSeq(i+1,foundIndex(thisi))-360;
+                    tmpi = jointangleSeq(i,foundIndex(thisi));
+                end
+                tmp(foundIndex(thisi))=(tmpi_1-tmpi)/timesBEISHU;
+            end
+        else
+
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        
         for j=1:timesBEISHU-1
-            Sequence = [Sequence,[timethis+j*tinterval;Sequence(2:5,end)+tmp']];
+            added = Sequence(2:5,end)+tmp';
+            for tmp_k=1:size(added,1)
+                added(tmp_k)=legalizAnger(added(tmp_k));
+            end
+            Sequence = [Sequence,[timethis+j*tinterval;added]];
         end
     end
     timethis = (size(jointangleSeq,1)-1)*(timesBEISHU*tinterval);
@@ -3428,8 +3459,32 @@ function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,
         Sequence = [Sequence,[timethis;jointangleSeq(i,:)']];
         tmp = jointangleSeq(i+1,:)-jointangleSeq(i,:);
         tmp = tmp/timesBEISHU;
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        tmpChazhithis = jointangleSeq(i+1,:)-jointangleSeq(i,:);
+        if isempty(find(abs(tmpChazhithis)>180))==0 %避免出现(-180,180]体系下的角度突变
+            foundIndex = find(tmpChazhithis>180);
+            for thisi = 1:size(foundIndex,2)
+                if jointangleSeq(i+1,foundIndex(thisi))<0 
+                    tmpi_1 = 360+jointangleSeq(i+1,foundIndex(thisi));
+                    tmpi = jointangleSeq(i,foundIndex(thisi));
+                elseif jointangleSeq(i+1,foundIndex(thisi))>0 
+                    tmpi_1 = jointangleSeq(i+1,foundIndex(thisi))-360;
+                    tmpi = jointangleSeq(i,foundIndex(thisi));
+                end
+                tmp(foundIndex(thisi))=(tmpi_1-tmpi)/timesBEISHU;
+            end
+        else
+
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
         for j=1:timesBEISHU-1
-            Sequence = [Sequence,[timethis+j*tinterval;Sequence(2:5,end)+tmp']];
+            added = Sequence(2:5,end)+tmp';
+            for tmp_k=1:size(added,1)
+                added(tmp_k)=legalizAnger(added(tmp_k));
+            end
+            Sequence = [Sequence,[timethis+j*tinterval;added]];
         end
     end
     timethis = (size(jointangleSeq,1)-1)*(timesBEISHU*tinterval);
