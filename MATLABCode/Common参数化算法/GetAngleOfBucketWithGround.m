@@ -1,5 +1,5 @@
 function Angle = GetAngleOfBucketWithGround(theta1,theta2,theta3,theta4) %得到在四个角的情况下铲斗与地面的夹角 theta4属于给定的范围
-%这个函数还没有测试
+
 %最终Angle应该是-180 180 的子集
     GlobalDeclarationCommon
     k1 = theta1*pi/180;

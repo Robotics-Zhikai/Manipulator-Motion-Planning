@@ -554,6 +554,7 @@ function [AngleSequence,NeedModified] = CarryAndReleaseTaskCartesianSpaceSub(Sta
     
     FlagHaveSequence0 = 1;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %T0->T1
     Angle = GetAngleOfBucketWithGround(AnglesBegin(1),AnglesBegin(2),AnglesBegin(3),AnglesBegin(4));
     if Angle<0
         Angle = 360+Angle;
@@ -598,7 +599,7 @@ function [AngleSequence,NeedModified] = CarryAndReleaseTaskCartesianSpaceSub(Sta
         
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+    %T1->T2
     %到这一步时默认begin能够让铲斗保持稳定
     RightUpper = Matrixbegin1;
     if DirectionVector(3)>0
@@ -681,6 +682,7 @@ function [AngleSequence,NeedModified] = CarryAndReleaseTaskCartesianSpaceSub(Sta
     
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %T2->T3
     [jointAngleCurrent,Valid] = InverseKinematicsT40(Mid1);
     if Valid == 1
         AngleSequence1_5 = GetOneJointSequence(jointAngleCurrent(1),AnglesEnd(1),Vtheta1Max,atheta1max);
@@ -697,6 +699,7 @@ function [AngleSequence,NeedModified] = CarryAndReleaseTaskCartesianSpaceSub(Sta
     
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %T3->T4
     RightUpper = Mid1_5;
     
     DirectionVector = Matrixend(1:3,4)-Mid1_5(1:3,4);
