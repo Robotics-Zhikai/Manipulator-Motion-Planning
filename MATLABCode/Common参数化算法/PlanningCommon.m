@@ -26,64 +26,11 @@ InnerEdgeUp = GetInnerEdgeOfPlaneWorkSpaceUp(0.5);
 % plot(InnerEdgeDown(:,1),InnerEdgeDown(:,2),'.');
 
 
-%%
-%关节空间下任意两点快速到达 仅考虑关节空间物理约束 其余的一概不考虑
-[AnglesA,AnglesB]=RandomGenerateTWOAngles();
-AngleSequence = FastReachP2P(AnglesA,AnglesB,35,35,35,35,25,25,25,25);
-
-figure
-reducedSeqplot = [];
-for i=1:ceil(size(AngleSequence,2)/40):size(AngleSequence,2)
-    reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
-end
-PeterCorkePlotRobot(reducedSeqplot');
-
-close all 
 
 
 
 
-%%
-%关节空间下任意两点 先保持内容物不漏再释放 分阶段
-[AnglesA,AnglesB]=RandomGenerateTWOAngles();
-% AnglesA = [-53.4025   29.7896  -65.6209  -28.5359];
-% AnglesB = [150.1897  -15.9895  -46.7080   -2.0152];
-% AnglesB = [170.2708   14.5153  -41.9636  -41.0063];
-% AnglesA = [164.3390   29.3264 -120.8183  -82.6878];
-% AnglesA = [-17.9953  -19.1913  -42.7949   24.5571] ;
-% AnglesB = [-8.6419  -25.4489  -53.4900  -59.3351];
-% AnglesA = [134.4587  -38.9548 -103.2120    1.6915];
-% AnglesB = [-104.9925   18.6639 -120.3572    7.4600];
-% 
-% AnglesA = [-141.6049   40.7994 -129.4902    0.7384];
-% AnglesB = [114.2292   32.9704 -120.7121  -48.0283];
-% 
-% AnglesA = [109.9762    8.4446 -109.8785  -68.8088];
-% AnglesB = [139.1443  -37.5914  -76.1108  -78.1695];
-% 
-% AnglesA = [ -34.3511   -2.3367  -89.7602   -0.7444];
-% AnglesB = [46.0427   24.8464  -27.3861   26.4563];
-% 
-% AnglesA = [ -82.6940  -22.4892  -67.8522  -16.7595];
-% AnglesB = [-29.8695  -22.6981  -25.7274  -89.3307];
 
-% AngleSequence = CarryAndReleaseTaskJointSpace([170,-170],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
-times = tic;
-[AngleSequence,NEWAnglesBegin,NEWAnglesEnd] = CarryAndReleaseTaskCartesianSpace([160,-160],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
-disp('初始角度之差之模:');disp(norm(NEWAnglesBegin-AnglesA));
-disp('末角度之差之模:');disp(norm(NEWAnglesEnd-AnglesB));
-
-toc(times)
-AngleSequence(1,end)
-
-figure
-reducedSeqplot = [];
-for i=1:ceil(size(AngleSequence,2)/40):size(AngleSequence,2)
-    reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
-end
-PeterCorkePlotRobot(reducedSeqplot');
-
-close all 
 
 
 
@@ -133,6 +80,11 @@ PlotSingularPointsOfBucketTip(110,PointA,PointB);
 % BeginAngelBucketWithGround = -67.9361;
 % %这个没解决 插到一般就没办法插了 因为超出了限度 把工具箱里改成shortest选项就能了
 
+PointA = [13.7 -690  -300];
+PointB = [13.7 -360  -300];
+BeginAngelBucketWithGround = -50;
+EndAngelBucketWithGround = -150;
+
 figure
 result = InverseKinematicsBucketTip(PointA',BeginAngelBucketWithGround);
 PlotTheta1234(result(1),result(2),result(3),result(4));
@@ -143,49 +95,111 @@ PlotTheta1234(result(1),result(2),result(3),result(4));
 
 Sequence = BucketTipLinearPlanningROBOTICSTOOL(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,35,35,35,35,25,25,25,25);
 %明天封装个可视化函数 20200820
-figure
-for i =1:size(Sequence,2)
-    [position1,position2] = ForwardKinematics([Sequence(2,i),Sequence(3,i),Sequence(4,i),Sequence(5,i)]);
-    subplot(331)
-    plot(position2(1,4),position2(2,4),'.');
-    hold on 
-    subplot(332)
-    plot(position2(1,4),position2(3,4),'.');
-    hold on 
-    subplot(333)
-    plot(position2(2,4),position2(3,4),'.');
-    hold on 
-    subplot(334)
-    plot(i,Sequence(2,i),'.');
-    hold on 
-    subplot(335)
-    plot(i,Sequence(3,i),'.');
-    hold on 
-    subplot(336)
-    plot(i,Sequence(4,i),'.');
-    hold on 
-    subplot(337)
-    plot(i,Sequence(5,i),'.');
-    hold on 
-    
-end
 
-% figure
+
+figure
 reducedSeqplot = [];
-for i=1:ceil(size(Sequence,2)/20):size(Sequence,2)
+for i=1:ceil(size(Sequence,2)/40):size(Sequence,2)
     reducedSeqplot = [reducedSeqplot Sequence(2:5,i)];
 end
 PeterCorkePlotRobot(reducedSeqplot');
 
 
+%这是看最后得到的直线直不直的
+% figure
+% for i =1:size(Sequence,2)/1:size(Sequence,2)
+%     [position1,position2] = ForwardKinematics([Sequence(2,i),Sequence(3,i),Sequence(4,i),Sequence(5,i)]);
+%     subplot(331)
+%     plot(position2(1,4),position2(2,4),'.');
+%     hold on 
+%     subplot(332)
+%     plot(position2(1,4),position2(3,4),'.');
+%     hold on 
+%     subplot(333)
+%     plot(position2(2,4),position2(3,4),'.');
+%     hold on 
+%     subplot(334)
+%     plot(i,Sequence(2,i),'.');
+%     hold on 
+%     subplot(335)
+%     plot(i,Sequence(3,i),'.');
+%     hold on 
+%     subplot(336)
+%     plot(i,Sequence(4,i),'.');
+%     hold on 
+%     subplot(337)
+%     plot(i,Sequence(5,i),'.');
+%     hold on 
+%     
+% end
 
 
 
 
 
+%%
+%关节空间下任意两点 先保持内容物不漏再释放 分阶段
+[AnglesA,AnglesB]=RandomGenerateTWOAngles();
+% AnglesA = [-53.4025   29.7896  -65.6209  -28.5359];
+% AnglesB = [150.1897  -15.9895  -46.7080   -2.0152];
+% AnglesB = [170.2708   14.5153  -41.9636  -41.0063];
+% AnglesA = [164.3390   29.3264 -120.8183  -82.6878];
+% AnglesA = [-17.9953  -19.1913  -42.7949   24.5571] ;
+% AnglesB = [-8.6419  -25.4489  -53.4900  -59.3351];
+% AnglesA = [134.4587  -38.9548 -103.2120    1.6915];
+% AnglesB = [-104.9925   18.6639 -120.3572    7.4600];
+% 
+% AnglesA = [-141.6049   40.7994 -129.4902    0.7384];
+% AnglesB = [114.2292   32.9704 -120.7121  -48.0283];
+% 
+% AnglesA = [109.9762    8.4446 -109.8785  -68.8088];
+% AnglesB = [139.1443  -37.5914  -76.1108  -78.1695];
+% 
+% AnglesA = [ -34.3511   -2.3367  -89.7602   -0.7444];
+% AnglesB = [46.0427   24.8464  -27.3861   26.4563];
+% 
+% AnglesA = [ -82.6940  -22.4892  -67.8522  -16.7595];
+% AnglesB = [-29.8695  -22.6981  -25.7274  -89.3307];
+
+AnglesA = Sequence(2:5,end)';
+AnglesB = [90   18.6639 -120.3572    7.4600];
+
+% AngleSequence = CarryAndReleaseTaskJointSpace([170,-170],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
+times = tic;
+[AngleSequence,NEWAnglesBegin,NEWAnglesEnd] = CarryAndReleaseTaskCartesianSpace([160,-160],AnglesA,AnglesB,35,35,35,35,25,25,25,25);
+disp('初始角度之差之模:');disp(norm(NEWAnglesBegin-AnglesA));
+disp('末角度之差之模:');disp(norm(NEWAnglesEnd-AnglesB));
+
+toc(times)
+AngleSequence(1,end)
+
+% figure
+reducedSeqplot = [];
+for i=1:ceil(size(AngleSequence,2)/50):size(AngleSequence,2)
+    reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
+end
+PeterCorkePlotRobot(reducedSeqplot');
+
+% close all 
 
 
+%%
+%关节空间下任意两点快速到达 仅考虑关节空间物理约束 其余的一概不考虑
+[AnglesA,AnglesB]=RandomGenerateTWOAngles();
+% AnglesA=[theta1Range(1) theta2Range(1) theta3Range(1) theta4Range(1)];
+% AnglesB=[0 theta2Range(2) theta3Range(2) theta4Range(2)];
+AnglesA = [90   18.6639 -120.3572    7.4600];
+AnglesB = [-87.7251  -15.0823  -27.8304   -7.0873];
+AngleSequence = FastReachP2P(AnglesA,AnglesB,35,35,35,35,25,25,25,25);
 
+
+reducedSeqplot = [];
+for i=1:ceil(size(AngleSequence,2)/40):size(AngleSequence,2)
+    reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
+end
+PeterCorkePlotRobot(reducedSeqplot');
+
+close all 
 
 %%
 %这个算法复杂 适合科研 不适合工程实用
@@ -919,7 +933,7 @@ function VisualBuckettipOuterEdge(lidu)
     end
 end
 
-function[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4,InnerEdgeUp,InnerEdgeDown,TwoInnerTangentPoints)%解决任意可直达直线挖掘
+function[PointsSequence,theta4sequence] = LinearDigPlanningRandomLine(StartPoint,EndPoint,theta4begin,theta4end,Vmaxtheta2,Vmaxtheta3,Vmaxtheta4,amaxtheta2,amaxtheta3,amaxtheta4,InnerEdgeUp,InnerEdgeDown,TwoInnerTangentPoints)%解决任意可直达直线挖掘 直线在挖机臂平面上
 %为了解决加上pid控制后不能精确到达目标位置的问题
     begindistance = norm(StartPoint-EndPoint)
     if begindistance<=1
