@@ -7,7 +7,7 @@ clear all
 GlobalDeclarationCommon
 
 
-
+ContinueFrames = [];
 
 
 TwoInnerTangentPoints = FindInnerEdgeTangentPoints();
@@ -104,6 +104,7 @@ for i=1:ceil(size(Sequence,2)/40):size(Sequence,2)
 end
 PeterCorkePlotRobot(reducedSeqplot');
 
+ContinueFrames = [ContinueFrames; reducedSeqplot'];
 
 %这是看最后得到的直线直不直的
 % figure
@@ -179,7 +180,7 @@ for i=1:ceil(size(AngleSequence,2)/50):size(AngleSequence,2)
     reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
 end
 PeterCorkePlotRobot(reducedSeqplot');
-
+ContinueFrames = [ContinueFrames; reducedSeqplot'];
 % close all 
 
 
@@ -198,7 +199,9 @@ for i=1:ceil(size(AngleSequence,2)/40):size(AngleSequence,2)
     reducedSeqplot = [reducedSeqplot AngleSequence(2:5,i)];
 end
 PeterCorkePlotRobot(reducedSeqplot');
+ContinueFrames = [ContinueFrames; reducedSeqplot'];
 
+PeterCorkePlotRobot(ContinueFrames);
 close all 
 
 %%
@@ -3418,7 +3421,7 @@ function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,
             
             tmpChazhithis = jointangleSeq(i+1,:)-jointangleSeq(i,:);
             if isempty(find(abs(tmpChazhithis)>180))==0 %避免出现(-180,180]体系下的角度突变
-                foundIndex = find(tmpChazhithis>180);
+                foundIndex = find(abs(tmpChazhithis)>180);
                 for thisi = 1:size(foundIndex,2)
                     if jointangleSeq(i+1,foundIndex(thisi))<0 
                         tmpi_1 = 360+jointangleSeq(i+1,foundIndex(thisi));
@@ -3480,7 +3483,7 @@ function Sequence = BucketTipLinearPlanningCPP(Matrixbegin,Matrixend,Vtheta1Max,
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         tmpChazhithis = jointangleSeq(i+1,:)-jointangleSeq(i,:);
         if isempty(find(abs(tmpChazhithis)>180))==0 %避免出现(-180,180]体系下的角度突变
-            foundIndex = find(tmpChazhithis>180);
+            foundIndex = find(abs(tmpChazhithis)>180);
             for thisi = 1:size(foundIndex,2)
                 if jointangleSeq(i+1,foundIndex(thisi))<0 
                     tmpi_1 = 360+jointangleSeq(i+1,foundIndex(thisi));

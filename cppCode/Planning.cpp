@@ -414,6 +414,104 @@ void ManipulatorPlanningJointSpaceDEMO()//如何使用ManipulatorPlanningJointSpaceS
 	}
 }
 
+void FastReachP2PDEMO()
+{
+	Vector4d AnglesA;
+	AnglesA << 90, 18.6639, -120.3572, 7.4600;
+	Vector4d AnglesB;
+	AnglesB << -87.7251, -15.0823, -27.8304, -7.0873;
+	MatrixXd AngleSequence = FastReachP2P(AnglesA, AnglesB, 35, 35, 35, 35, 25, 25, 25, 25);
+	for (int i = 0; i < AngleSequence.cols(); i++)
+	{
+		cout << (AngleSequence.col(i)).transpose() << endl;
+	}
+	
+}
+
+MatrixXd GetOneJointSequence(double ThetaBegin, double ThetaEnd, double Vmaxtheta, double amaxtheta)
+{
+	double SampleTime = tinterval;
+	double LeftTF = 0;
+	double RightTF = 100 * 180 / Vmaxtheta; //一般不会到100秒都不到的
+
+	double tf = LeftTF + (RightTF - LeftTF) / 2;
+	MatrixXd AngleSequence;
+	while (RightTF - LeftTF>0.5 || isempty(AngleSequence) == 1)
+	{
+		AngleSequence.resize(2, tf / SampleTime + 1);
+		for (int i = 1; i <= tf / SampleTime + 1; i++)
+		{
+			double t = (i - 1)*SampleTime;
+			double theta;
+			int success;
+			ManipulatorPlanningJointSpaceSub(ThetaBegin, ThetaEnd, tf, amaxtheta, Vmaxtheta, t, 0.1, 1, &theta, &success);
+			if (success == 1)
+			{
+				MatrixXd timetheta(2, 1);
+				timetheta(0) = t;
+				timetheta(1) = theta;
+				//AngleSequence = addMatrix2Matrix(AngleSequence, " ", timetheta); //速度非常慢！
+				AngleSequence.block(0, (i - 1), 2, 1) = timetheta;
+			}
+			else
+			{
+				AngleSequence.resize(0, 0);
+				break;
+			}
+		}
+
+		if (isempty(AngleSequence) == 1)
+			LeftTF = tf;
+		else
+			RightTF = tf;
+		tf = LeftTF + (RightTF - LeftTF) / 2;
+	}
+	return AngleSequence;
+}
+
+MatrixXd FastReachP2P(Vector4d jointAnglesBegin, Vector4d JointAnglesEnd,double Vtheta1Max, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta1max, double atheta2max, double atheta3max, double atheta4max)
+{
+	MatrixXd AngleSequence1 = GetOneJointSequence(jointAnglesBegin(0), JointAnglesEnd(0), Vtheta1Max, atheta1max);
+	MatrixXd AngleSequence2 = GetOneJointSequence(jointAnglesBegin(1), JointAnglesEnd(1), Vtheta2Max, atheta2max);
+	MatrixXd AngleSequence3 = GetOneJointSequence(jointAnglesBegin(2), JointAnglesEnd(2), Vtheta3Max, atheta3max);
+	MatrixXd AngleSequence4 = GetOneJointSequence(jointAnglesBegin(3), JointAnglesEnd(3), Vtheta4Max, atheta4max);
+	Vector4d Colums;
+	Colums(0) = AngleSequence1.cols();
+	Colums(1) = AngleSequence2.cols();
+	Colums(2) = AngleSequence3.cols();
+	Colums(3) = AngleSequence4.cols();
+	int MaxColum = Colums.maxCoeff();
+	MatrixXd AngleSequence1mid = addMatrix2Matrix(AngleSequence1.row(1), " ", MatrixXd::Ones(1, MaxColum - AngleSequence1.cols())*AngleSequence1(1, AngleSequence1.cols() - 1));
+	MatrixXd AngleSequence2mid = addMatrix2Matrix(AngleSequence2.row(1), " ", MatrixXd::Ones(1, MaxColum - AngleSequence2.cols())*AngleSequence2(1, AngleSequence2.cols() - 1));
+	MatrixXd AngleSequence3mid = addMatrix2Matrix(AngleSequence3.row(1), " ", MatrixXd::Ones(1, MaxColum - AngleSequence3.cols())*AngleSequence3(1, AngleSequence3.cols() - 1));
+	MatrixXd AngleSequence4mid = addMatrix2Matrix(AngleSequence4.row(1), " ", MatrixXd::Ones(1, MaxColum - AngleSequence4.cols())*AngleSequence4(1, AngleSequence4.cols() - 1));
+	MatrixXd result;
+	result = addMatrix2Matrix(AngleSequence1mid, ";", AngleSequence2mid);
+	result = addMatrix2Matrix(result, ";", AngleSequence3mid);
+	result = addMatrix2Matrix(result, ";", AngleSequence4mid);
+	MatrixXd time(1, result.cols());
+	for (int i = 0; i < result.cols(); i++)
+	{
+		time(i) = i*tinterval;
+	}
+	cout << time;
+	result = addMatrix2Matrix(time, ";", result);
+	return result;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 vector<double> lspb_c(double q0, double q1, double t_input)
 {
 	vector<double> s;
@@ -470,38 +568,6 @@ vector<double> lspb_c(double q0, double q1, double t_input)
 	return s;
 }
 
-class UnitQuaternion
-{
-public:
-	double s;
-	//vector <double> v;
-	Vector3d v;
-
-	UnitQuaternion()
-	{
-		this->s = 0;
-		this->v << 0, 0, 0;
-	}
-	Matrix3d R() //四元数到3*3的旋转矩阵的转换
-	{
-		Matrix3d r;
-		r = Matrix3d::Zero();
-		double s = this->s;
-		double x = this->v(0);
-		double y = this->v(1);
-		double z = this->v(2);
-		r(0, 0) = 1 - 2 * (pow(y , 2) + pow(z , 2));
-		r(0, 1) = 2 * (x*y - s*z);
-		r(0, 2) = 2 * (x*z + s*y);
-		r(1, 0) = 2 * (x*y + s*z);
-		r(1, 1) = 1 - 2 * (pow(x , 2) + pow(z , 2));
-		r(1, 2) = 2 * (y*z - s*x);
-		r(2, 0) = 2 * (x*z - s*y);
-		r(2, 1) = 2 * (y*z + s*x);
-		r(2, 2) = 1 - 2 * (pow(x , 2) + pow(y , 2));
-		return r;
-	}
-};
 
 double sign(double x)
 {
@@ -753,14 +819,7 @@ void ctrajDEMO()
 	}
 }
 
-int IsAnglesInLimitRange(Vector4d jointAngles)
-{
-	if ((jointAngles(0) < theta1Range(0) || jointAngles(0) > theta1Range(1)) || (jointAngles(1) < theta2Range(0) || jointAngles(1) > theta2Range(1)) \
-		|| (jointAngles(2) < theta3Range(0) || jointAngles(2) > theta3Range(1)) || (jointAngles(3) < theta4Range(0) || jointAngles(3) > theta4Range(1)))
-		return 0;
-	else
-		return 1;
-}
+
 
 void BucketTipLinearPlanningDEMO()
 {
@@ -794,29 +853,19 @@ void BucketTipLinearPlanningDEMO()
 		-0.3868, -0.9222, 0.0000, -197.4437,
 		0, 0, 0, 1.0000;
 
-	MatrixXd Sequence = BucketTipLinearPlanning(T0, T1, 35, 35, 35, 25, 25, 25);
+	MatrixXd Sequence = BucketTipLinearPlanning(T0, T1, 35, 35, 35, 35, 25, 25, 25, 25);
 	for (int i = 0; i < Sequence.cols(); i++)
 	{
 		cout << Sequence.col(i).transpose() << endl;
 	}
 }
 
-MatrixXd abs(MatrixXd mat)
-{
-	MatrixXd matout(mat.rows(),mat.cols());
-	for (int i = 0; i < mat.rows(); i++)
-	{
-		for (int j = 0; j < mat.cols(); j++)
-		{
-			matout(i, j) = abs(mat(i, j));
-		}
-	}
-	return matout;
-}
 
-MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta2max, double atheta3max, double atheta4max)
+
+MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta1Max,double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta1max,double atheta2max, double atheta3max, double atheta4max)
 {
-	Matrix<double, Dynamic, Dynamic> Tsequence = ctraj_c(BeginT, EndT, 200, 1); //优先是1 若1不能就0  优先shortest
+	int ChaZhiNum = 50;
+	Matrix<double, Dynamic, Dynamic> Tsequence = ctraj_c(BeginT, EndT, ChaZhiNum, 1); //优先是1 若1不能就0  优先shortest
 
 	Matrix<double, Dynamic, Dynamic> jointangleSeq(Tsequence.cols() / 4,4);
 
@@ -837,7 +886,7 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 			warning(" 有可能插值算法插的方向错了'shortest'或非'shortest'");
 			
 			Tsequence = MatrixXd::Zero(Tsequence.rows(), Tsequence.cols());
-			Tsequence = ctraj_c(BeginT, EndT, 200, 0);
+			Tsequence = ctraj_c(BeginT, EndT, ChaZhiNum, 0);
 			//cout << jointangleSeq;
 			jointangleSeq = MatrixXd::Zero(Tsequence.cols() / 4, 4);
 			//cout << "asdfasdfasdf" << endl;
@@ -849,7 +898,11 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 		jointangleSeq.row((i - 1)) = jointangle.transpose(); //如果想要动态扩展的话需要初始化一个空间 然后resize。不能用resize 每次用都要清除原来的数据，只能预分配
 		countValidjointangleSeqRow++;
 	}
-	jointangleSeq = jointangleSeq.block(0, 0, countValidjointangleSeqRow, jointangleSeq.cols());
+	//cout << jointangleSeq << endl;
+	MatrixXd tmpjointangleSeq;
+	tmpjointangleSeq = jointangleSeq.block(0, 0, countValidjointangleSeqRow, jointangleSeq.cols());
+	jointangleSeq = tmpjointangleSeq;
+	//cout << jointangleSeq << endl;
 	//20200825 检验这个对不对 然后把0 和1 对调 应该是正确的 误差在0.1度
 
 	double Leftbeishu = 0;
@@ -861,7 +914,31 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 	{
 		MatrixXd djointangleSeq(jointangleSeq.rows() - 1, 4);
 		for (int i = 0; i < jointangleSeq.rows() - 1; i++)
+		{
 			djointangleSeq.row(i) = (jointangleSeq.row(i + 1) - jointangleSeq.row(i)) / (timesBEISHU*tinterval);
+
+			MatrixXd tmpChazhithis = (jointangleSeq.row(i + 1) - jointangleSeq.row(i));
+			if (isempty(find(abs(tmpChazhithis), ">", 180)) == 0) // 避免出现(-180, 180]体系下的角度突变
+			{
+				MatrixXd foundIndex = find(abs(tmpChazhithis),">",180);
+				for (int thisi = 0; thisi < foundIndex.rows()*foundIndex.cols(); thisi++)
+				{
+					double tmpi_1, tmpi;
+					if (jointangleSeq(i + 1, foundIndex(thisi)) < 0)
+					{
+						tmpi_1 = 360 + jointangleSeq(i + 1, foundIndex(thisi));
+						tmpi = jointangleSeq(i, foundIndex(thisi));
+					}
+					else if (jointangleSeq(i + 1, foundIndex(thisi)) > 0)
+					{
+						tmpi_1 = jointangleSeq(i + 1, foundIndex(thisi)) - 360;
+						tmpi = jointangleSeq(i, foundIndex(thisi));
+					}
+					djointangleSeq(i, foundIndex(thisi)) = (tmpi_1 - tmpi) / (timesBEISHU*tinterval);
+				}
+			}
+		}
+			
 		MatrixXd ddjointangleSeq(djointangleSeq.rows() - 1, 4);
 		for (int i = 0;i<djointangleSeq.rows() - 1;i++)
 			ddjointangleSeq.row(i) = (djointangleSeq.row(i + 1) - djointangleSeq.row(i)) / (timesBEISHU*tinterval);
@@ -871,7 +948,8 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 			FLAGWHILE = FLAGWHILE + 1;
 			timesBEISHU = Rightbeishu;
 			timesBEISHU = ceil(timesBEISHU);
-			if (abs(djointangleSeq.col(1)).maxCoeff() > Vtheta2Max || abs(djointangleSeq.col(2)).maxCoeff() > Vtheta3Max \
+			if (abs(djointangleSeq.col(0)).maxCoeff() > Vtheta1Max || abs(ddjointangleSeq.col(0)).maxCoeff() > atheta1max \
+				|| abs(djointangleSeq.col(1)).maxCoeff() > Vtheta2Max || abs(djointangleSeq.col(2)).maxCoeff() > Vtheta3Max \
 				|| abs(djointangleSeq.col(3)).maxCoeff() > Vtheta4Max || abs(ddjointangleSeq.col(1)).maxCoeff() > atheta2max \
 				|| abs(ddjointangleSeq.col(2)).maxCoeff() > atheta3max || abs(ddjointangleSeq.col(3)).maxCoeff() > atheta4max)
 			{
@@ -881,7 +959,8 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 		}
 		else
 		{
-			if (abs(djointangleSeq.col(1)).maxCoeff() > Vtheta2Max || abs(djointangleSeq.col(2)).maxCoeff() > Vtheta3Max \
+			if (abs(djointangleSeq.col(0)).maxCoeff() > Vtheta1Max || abs(ddjointangleSeq.col(0)).maxCoeff() > atheta1max \
+				|| abs(djointangleSeq.col(1)).maxCoeff() > Vtheta2Max || abs(djointangleSeq.col(2)).maxCoeff() > Vtheta3Max \
 				|| abs(djointangleSeq.col(3)).maxCoeff() > Vtheta4Max || abs(ddjointangleSeq.col(1)).maxCoeff() > atheta2max \
 				|| abs(ddjointangleSeq.col(2)).maxCoeff() > atheta3max || abs(ddjointangleSeq.col(3)).maxCoeff() > atheta4max)
 				Leftbeishu = timesBEISHU;
@@ -896,7 +975,6 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 	
 	for (int i = 0; i < jointangleSeq.rows() - 1; i++)
 	{
-		
 		double timethis = i*(timesBEISHU*tinterval);
 		MatrixXd tmpSequencecol(5, 1);
 		tmpSequencecol << timethis, jointangleSeq.row(i)(0), jointangleSeq.row(i)(1), jointangleSeq.row(i)(2), jointangleSeq.row(i)(3);
@@ -905,6 +983,30 @@ MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2M
 		MatrixXd tmp = jointangleSeq.row(i + 1) - jointangleSeq.row(i);
 		tmp = tmp / timesBEISHU;
 		
+		////////////////////////////////////////////////////
+		MatrixXd tmpChazhithis = (jointangleSeq.row(i + 1) - jointangleSeq.row(i));
+		if (isempty(find(abs(tmpChazhithis), ">", 180)) == 0) // 避免出现(-180, 180]体系下的角度突变
+		{
+			MatrixXd foundIndex = find(abs(tmpChazhithis), ">", 180);
+			for (int thisi = 0; thisi < foundIndex.rows()*foundIndex.cols(); thisi++)
+			{
+				double tmpi_1, tmpi;
+				if (jointangleSeq(i + 1, foundIndex(thisi)) < 0)
+				{
+					tmpi_1 = 360 + jointangleSeq(i + 1, foundIndex(thisi));
+					tmpi = jointangleSeq(i, foundIndex(thisi));
+				}
+				else if (jointangleSeq(i + 1, foundIndex(thisi)) > 0)
+				{
+					tmpi_1 = jointangleSeq(i + 1, foundIndex(thisi)) - 360;
+					tmpi = jointangleSeq(i, foundIndex(thisi));
+				}
+				tmp(foundIndex(thisi)) = (tmpi_1 - tmpi) / timesBEISHU;
+			}
+		}
+		////////////////////////////////////////////////////
+
+
 		for (int j = 1; j <= timesBEISHU - 1; j++)
 		{
 			Sequence.col(k_Sequence + j)(0) = timethis + j*tinterval;

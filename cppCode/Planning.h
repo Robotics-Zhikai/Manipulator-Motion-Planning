@@ -4,7 +4,7 @@
 #include "main.h"
 
 #include "FIKinematic.h"
-
+#include "EigenMatrixOperate.h"
 
 
 class MatlabDouble
@@ -107,6 +107,39 @@ public:
 			return 1;
 		else
 			return 0;
+	}
+};
+
+class UnitQuaternion
+{
+public:
+	double s;
+	//vector <double> v;
+	Vector3d v;
+
+	UnitQuaternion()
+	{
+		this->s = 0;
+		this->v << 0, 0, 0;
+	}
+	Matrix3d R() //四元数到3*3的旋转矩阵的转换
+	{
+		Matrix3d r;
+		r = Matrix3d::Zero();
+		double s = this->s;
+		double x = this->v(0);
+		double y = this->v(1);
+		double z = this->v(2);
+		r(0, 0) = 1 - 2 * (pow(y, 2) + pow(z, 2));
+		r(0, 1) = 2 * (x*y - s*z);
+		r(0, 2) = 2 * (x*z + s*y);
+		r(1, 0) = 2 * (x*y + s*z);
+		r(1, 1) = 1 - 2 * (pow(x, 2) + pow(z, 2));
+		r(1, 2) = 2 * (y*z - s*x);
+		r(2, 0) = 2 * (x*z - s*y);
+		r(2, 1) = 2 * (y*z + s*x);
+		r(2, 2) = 1 - 2 * (pow(x, 2) + pow(y, 2));
+		return r;
 	}
 };
 
@@ -290,8 +323,12 @@ void ManipulatorPlanningJointSpaceDEMO();
 Matrix<double, Dynamic, Dynamic> ctraj_c(Matrix4d T0, Matrix4d T1, double t_input, int Isshortest);
 void ctrajDEMO();
 
-Matrix<double, Dynamic, Dynamic> BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta2max, double atheta3max, double atheta4max);
+MatrixXd BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta1Max, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta1max, double atheta2max, double atheta3max, double atheta4max);
+//Matrix<double, Dynamic, Dynamic> BucketTipLinearPlanning(Matrix4d BeginT, Matrix4d EndT, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta2max, double atheta3max, double atheta4max);
 void BucketTipLinearPlanningDEMO();
+
+void FastReachP2PDEMO();
+MatrixXd FastReachP2P(Vector4d jointAnglesBegin, Vector4d JointAnglesEnd, double Vtheta1Max, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta1max, double atheta2max, double atheta3max, double atheta4max);
 
 
 #endif

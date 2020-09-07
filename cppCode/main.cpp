@@ -1,6 +1,7 @@
 #include "main.h"
 #include "Planning.h"
 #include "FIKinematic.h"
+#include "EigenMatrixOperate.h"
 
 //using Eigen::MatrixXd;
 double m0 = 0 * pi / 180;
@@ -29,7 +30,7 @@ double tinterval = 0.01;
 
 void error(string msg)
 {
-	cout << msg << endl;
+	cout << "error:"<<msg << endl;
 	system("pause");
 }
 
@@ -40,6 +41,27 @@ void warning(string msg)
 
 int main()
 {
+
+
+	//MatrixXd test(2,2);
+	//test << 1, 2, 3, 4;
+	//cout << test << endl;
+	//test.resize(0, 0);
+	//cout << test << endl;
+
+	//MatrixXd test(2,3);
+	//MatrixXd test1(2,4);
+	//test << 1,2,3,4,5,6;
+	//test1 << 7,8,9,10,11,12,13,42;
+	//cout << test << endl;
+	//test = addMatrix2Matrix(test, ";", test1);
+	//cout << test << endl;
+
+	/*MatrixXd test(2, 2);
+	test << 1, 2, 3, 4;
+	cout << test << endl;
+	cout << test(0) << " " << test(1) << " " << test(2) << endl;*/
+
 	//Matrix<double, Dynamic, 4> a(4, 4);
 	//a = MatrixXd::Random(4, 4);
 	//cout << a << endl<<endl;
@@ -91,9 +113,9 @@ int main()
 
 	//double tform[16] = { 1 ,2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 	//double Tsequence[4];
-
-	BucketTipLinearPlanningDEMO();
+	FastReachP2PDEMO();
+	//BucketTipLinearPlanningDEMO();
 	//ctrajDEMO();
 	//ManipulatorPlanningJointSpaceDEMO();
-	//system("pause");
+	system("pause");
 }
