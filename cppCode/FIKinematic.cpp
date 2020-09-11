@@ -170,7 +170,7 @@ void ForwardKinematics(const double *jointangle, double *position1, double *posi
 
 
 //position1为铲斗旋转中心点坐标，position2为铲齿最末端点坐标
-void ForwardKinematics(const double *jointangle, Matrix4d & position1, Matrix4d & position2)
+void ForwardKinematics(const Vector4d jointangle, Matrix4d & position1, Matrix4d & position2)
 {
 	double m[4], a[4], theta[4], d[4];
 	double m_matrix1[16], m_matrix2[16], m_matrix3[16], m_matrix4[16], m_matrix5[16];
@@ -887,4 +887,184 @@ Vector3d InverseKinematicsPos2Angle(Vector3d position,int & reliable)
 	}
 
 	return jointAngle;
+}
+
+double GetAngleOfBucketWithGround(double theta1, double theta2, double theta3, double theta4) // 得到在四个角的情况下铲斗与地面的夹角 theta4属于给定的范围
+{
+	double k1 = theta1*pi / 180;
+	double k2 = theta2*pi / 180;
+	Matrix4d position1, position2;
+	Vector4d Angles;
+	Angles(0) = theta1;
+	Angles(1) = theta2;
+	Angles(2) = theta3;
+	Angles(3) = theta4;
+	ForwardKinematics(Angles,position1,position2);
+	MatrixXd P3minusP2(1, 3);
+	P3minusP2(0) = a2*(cos(k1)*cos(k2) - cos(m1)*sin(k1)*sin(k2)) + d3*sin(m2)*(cos(k1)*sin(k2) + cos(k2)*cos(m1)*sin(k1)) + d3*cos(m2)*sin(k1)*sin(m1);
+	P3minusP2(1) = a2*(cos(k2)*cos(m0)*sin(k1) - sin(k2)*sin(m0)*sin(m1) + cos(k1)*cos(m0)*cos(m1)*sin(k2)) + d3*sin(m2)*(cos(m0)*sin(k1)*sin(k2) + cos(k2)*sin(m0)*sin(m1) - cos(k1)*cos(k2)*cos(m0)*cos(m1)) - d3*cos(m2)*(cos(m1)*sin(m0) + cos(k1)*cos(m0)*sin(m1));
+	P3minusP2(2) = a2*(cos(k2)*sin(k1)*sin(m0) + cos(m0)*sin(k2)*sin(m1) + cos(k1)*cos(m1)*sin(k2)*sin(m0)) - d3*sin(m2)*(cos(k2)*cos(m0)*sin(m1) - sin(k1)*sin(k2)*sin(m0) + cos(k1)*cos(k2)*cos(m1)*sin(m0)) + d3*cos(m2)*(cos(m0)*cos(m1) - cos(k1)*sin(m0)*sin(m1));
+
+	Vector3d XPositive;//以这个向量为x的正方向 当铲斗与其呈180度附近时，土不会掉下来
+	XPositive(0) = P3minusP2(0);
+	XPositive(1) = P3minusP2(1);
+	XPositive(2) = 0;
+	XPositive.normalize();
+
+	Vector3d BucketVector = position2.block(0, 3, 3, 1) - position1.block(0, 3, 3, 1);
+	BucketVector.normalize();
+	//对于 X 在区间 [-1, 1] 内的实数值，acos(X) 返回区间 [0, π] 内的值。
+	double abstheta4 = acos(BucketVector.dot(XPositive));
+	double Angle;
+	if (BucketVector(2)<0)
+		Angle = -abstheta4;
+	else
+		Angle = abstheta4;
+	Angle = Angle * 180 / pi;
+	Angle = legalizAnger(Angle);
+
+	return Angle;
+}
+
+Vector2d GetBucketwithGroundRange(double theta1,double theta2,double theta3)
+// 得到theta4满足给定的范围的前提下与地面的夹角范围
+{
+	Vector2d BucketwithGroundRange;
+	BucketwithGroundRange(0) = GetAngleOfBucketWithGround(theta1, theta2, theta3, theta4Range(0));
+	BucketwithGroundRange(1) = GetAngleOfBucketWithGround(theta1, theta2, theta3, theta4Range(1));
+	return BucketwithGroundRange;
+}
+
+vector <MatrixXd> groundAngleRangeTOtheta4Range(double theta1, double  theta2, double  theta3, MatrixXd WithGroundAngleRange, int & YES) //WithGroundAngleRange，左为下限，右为上限，逆时针为正，超出180即跳变为负
+{
+	//YES 为1 时表明在theta4满足给定的范围的条件下能找出一范围来，满足WithGroundAngleRange
+	//WithGroundAngleRange的角度体系也是 - 180 180
+	WithGroundAngleRange(0) = legalizAnger(WithGroundAngleRange(0));
+	WithGroundAngleRange(1) = legalizAnger(WithGroundAngleRange(1));
+	vector <MatrixXd>  Theta4Range;
+	Vector2d BucketwithGroundRange = GetBucketwithGroundRange(theta1, theta2, theta3);
+
+	vector <MatrixXd> SetBucketwithGroundRange;
+	if (BucketwithGroundRange(1) > BucketwithGroundRange(0))
+		SetBucketwithGroundRange.push_back(BucketwithGroundRange);
+	else
+		if (BucketwithGroundRange(1) < BucketwithGroundRange(0))
+		{
+			double theta4mid = theta4Range(0) + 180 - BucketwithGroundRange(0);
+			MatrixXd tmppush(1,2);
+			tmppush(0) = BucketwithGroundRange(0);
+			tmppush(1) = 180;
+			SetBucketwithGroundRange.push_back(tmppush);
+			tmppush(0) = theta4Range(0);
+			tmppush(1) = theta4mid;
+			SetBucketwithGroundRange.push_back(tmppush);
+			tmppush(0) = -179.99999;
+			tmppush(1) = BucketwithGroundRange(1);
+			SetBucketwithGroundRange.push_back(tmppush);
+			tmppush(0) = theta4mid;
+			tmppush(1) = theta4Range(1);
+			SetBucketwithGroundRange.push_back(tmppush);
+		}
+	
+	vector <MatrixXd> SetWithGroundAngleRange;
+	if (WithGroundAngleRange(1) >= WithGroundAngleRange(0))
+        SetWithGroundAngleRange.push_back( WithGroundAngleRange);
+    else
+		if (WithGroundAngleRange(1) < WithGroundAngleRange(0))
+		{
+			MatrixXd tmppush(1, 2);
+			tmppush(0) = WithGroundAngleRange(0);
+			tmppush(1) = 180;
+			SetWithGroundAngleRange.push_back(tmppush);
+			tmppush(0) = -179.99999;
+			tmppush(1) = WithGroundAngleRange(1);
+			SetWithGroundAngleRange.push_back(tmppush);
+		}
+	    
+	vector <MatrixXd> intersectionSet;
+	for (int i = 0; i < SetBucketwithGroundRange.size(); i = i + 2)
+	{
+		for (int j = 0; j < SetWithGroundAngleRange.size(); j = j + 1)
+		{
+			MatrixXd intersecttmp = GetIntersection(SetBucketwithGroundRange[i], SetWithGroundAngleRange[j]);
+			if (isempty(intersecttmp) == 0)
+				intersectionSet.push_back(intersecttmp);
+		}
+	}
+
+	if (BucketwithGroundRange(1) > BucketwithGroundRange(0))
+	{
+		for (int i = 0; i < intersectionSet.size(); i++)
+		{
+			MatrixXd tmp = intersectionSet[i];
+			if (size(tmp, 2) == 2)
+			{
+				MatrixXd rangethis(1, 2);
+				rangethis(0) = theta4Range(1) - (BucketwithGroundRange(1) - tmp(0));
+				rangethis(1) = theta4Range(1) - (BucketwithGroundRange(1) - tmp(1));
+				cout << rangethis << endl;
+				Theta4Range.push_back(rangethis);
+			}
+			else
+			{
+				if (size(tmp, 2) == 1)
+				{
+					MatrixXd rangethis(1, 1);
+					rangethis(0) = theta4Range(1) - (BucketwithGroundRange(1) - tmp(0));
+					Theta4Range.push_back(rangethis);
+				}
+				else
+					error("程序逻辑出错");
+			}	
+		}
+	}
+	else
+	{
+		if (BucketwithGroundRange(1) < BucketwithGroundRange(0))
+		{
+			for (int i = 0; i < SetBucketwithGroundRange.size(); i = i + 2)
+			{
+				for (int j = 0; j < intersectionSet.size(); j++)
+				{
+					if (isempty(GetIntersection(intersectionSet[j], SetBucketwithGroundRange[i])) == 0)
+					{
+						if (size(intersectionSet[j], 2) == 1)
+						{
+							MatrixXd rangethis(1, 1);
+							rangethis(0) = SetBucketwithGroundRange[i+1](0) + intersectionSet[j](0) - SetBucketwithGroundRange[i](0);
+							Theta4Range.push_back(rangethis);
+						}
+						else
+						{
+							MatrixXd rangethis(1, 2);
+							rangethis(0) = SetBucketwithGroundRange[i+1](0) + intersectionSet[j](0) - SetBucketwithGroundRange[i](0);
+							rangethis(1) = SetBucketwithGroundRange[i+1](0) + intersectionSet[j](1) - SetBucketwithGroundRange[i](0);
+							
+							Theta4Range.push_back(rangethis);
+						}
+							
+					}
+				}
+			}
+		}
+	}
+
+	if (Theta4Range.empty() == 1)
+		YES = 0;
+	else
+		YES = 1;
+	if (YES == 1)
+	{
+		for (int i = 0; i < Theta4Range.size(); i++)
+		{
+			MatrixXd validcheck;
+			validcheck = GetIntersection(Theta4Range[i], theta4Range.transpose());
+			cout << validcheck << endl;
+			cout << Theta4Range[i] << endl;
+			if ((validcheck - Theta4Range[i]).norm()>0.001)
+				error("程序逻辑出错");
+		}
+	}
+
+	return Theta4Range;
 }

@@ -330,5 +330,6 @@ void BucketTipLinearPlanningDEMO();
 void FastReachP2PDEMO();
 MatrixXd FastReachP2P(Vector4d jointAnglesBegin, Vector4d JointAnglesEnd, double Vtheta1Max, double Vtheta2Max, double Vtheta3Max, double Vtheta4Max, double atheta1max, double atheta2max, double atheta3max, double atheta4max);
 
+void WholeSystemDEMO();
 
 #endif

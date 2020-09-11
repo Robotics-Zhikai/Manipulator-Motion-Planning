@@ -9,6 +9,8 @@
 #include <vector>
 #include <algorithm>
 #include <string.h>
+#include <cmath>
+#include <math.h>
 
 using namespace Eigen;
 typedef unsigned char boolean_T;
@@ -42,5 +44,6 @@ extern double tinterval;
 
 void error(string msg);
 void warning(string msg);
+double legalizAnger(double angle); //把角度限制在(-180, 180]
 
 #endif

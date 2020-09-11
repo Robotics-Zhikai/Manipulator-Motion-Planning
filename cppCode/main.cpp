@@ -39,9 +39,55 @@ void warning(string msg)
 	cout << msg << endl;
 }
 
+double legalizAnger(double angle) //把角度限制在(-180, 180]
+{
+	double thetaout = angle;
+	while (thetaout > 180)
+	{
+		thetaout = thetaout - 360;
+	}
+	while (thetaout <= -180)
+	{
+		thetaout = thetaout + 360;
+	}
+	return thetaout;
+}
+
+
+
 int main()
 {
 
+	//cout << (int)1.9;
+
+	//MatrixXd t(0, 0);
+	//cout << t;
+
+	//MatrixXd t(2, 2);
+	//t << 1, 2, 3, 4;
+	//cout << t.mean() << endl;
+
+	//vector <MatrixXd> tst;
+	//MatrixXd a(1, 3);
+	//tst.push_back(a);
+	//MatrixXd b(3, 3);
+	//tst.push_back(b);
+	//cout << tst[0] << endl;
+	//cout << tst[1] << endl;
+
+
+
+	//Vector3d test1, test2;
+	//test1 << 1, 2, 3;
+	//test2 << 2, 3, 4;
+	//cout << test1.dot(test2) << endl;
+
+	
+	//Vector3d test;
+	//test << 1, 2, 3;
+	//cout << test << endl;
+	//test.normalize();
+	//cout << test << endl;
 
 	//MatrixXd test(2,2);
 	//test << 1, 2, 3, 4;
@@ -113,9 +159,10 @@ int main()
 
 	//double tform[16] = { 1 ,2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 	//double Tsequence[4];
-	FastReachP2PDEMO();
+	//FastReachP2PDEMO();
 	//BucketTipLinearPlanningDEMO();
 	//ctrajDEMO();
 	//ManipulatorPlanningJointSpaceDEMO();
+	WholeSystemDEMO();
 	system("pause");
 }
