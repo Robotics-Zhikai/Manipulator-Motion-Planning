@@ -79,3 +79,6 @@ ctraj函数转化到c语言 用矩阵库Eigen就有MATLAB编程的感觉了
 转c++ 修复部分bug
 ## 20200913
 完成整个系统 清理垃圾文件
+
+## FINALDEMO
+![image](https://github.com/Robotics-Zhikai/Manipulator-Motion-Planning/blob/master/image/result.gif)
