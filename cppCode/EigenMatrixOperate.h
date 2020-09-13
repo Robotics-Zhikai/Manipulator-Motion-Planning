@@ -29,4 +29,6 @@ int dot(MatrixXd vectorA, MatrixXd vectorB);
 
 MatrixXd ExtractRows(MatrixXd mat, int rowsbegin, int rowsend);
 MatrixXd ExtractCols(MatrixXd mat, int colsbegin, int colsend);
+
+MatrixXd GetRow_beginnum_Interval_endnum(double beginnum, double interval, double endnum);
 #endif

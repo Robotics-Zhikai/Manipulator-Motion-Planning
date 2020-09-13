@@ -1002,7 +1002,7 @@ vector <MatrixXd> groundAngleRangeTOtheta4Range(double theta1, double  theta2, d
 				MatrixXd rangethis(1, 2);
 				rangethis(0) = theta4Range(1) - (BucketwithGroundRange(1) - tmp(0));
 				rangethis(1) = theta4Range(1) - (BucketwithGroundRange(1) - tmp(1));
-				cout << rangethis << endl;
+				//cout << rangethis << endl;
 				Theta4Range.push_back(rangethis);
 			}
 			else
@@ -1059,8 +1059,8 @@ vector <MatrixXd> groundAngleRangeTOtheta4Range(double theta1, double  theta2, d
 		{
 			MatrixXd validcheck;
 			validcheck = GetIntersection(Theta4Range[i], theta4Range.transpose());
-			cout << validcheck << endl;
-			cout << Theta4Range[i] << endl;
+			//cout << validcheck << endl;
+			//cout << Theta4Range[i] << endl;
 			if ((validcheck - Theta4Range[i]).norm()>0.001)
 				error("³ÌÐòÂß¼­³ö´í");
 		}

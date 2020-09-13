@@ -8,6 +8,7 @@ GlobalDeclarationCommon
 
 
 ContinueFrames = [];
+AllData = [];
 
 
 TwoInnerTangentPoints = FindInnerEdgeTangentPoints();
@@ -96,6 +97,7 @@ PlotTheta1234(result(1),result(2),result(3),result(4));
 Sequence = BucketTipLinearPlanningROBOTICSTOOL(PointA,PointB,BeginAngelBucketWithGround,EndAngelBucketWithGround,35,35,35,35,25,25,25,25);
 %明天封装个可视化函数 20200820
 
+AllData = [AllData Sequence];
 
 figure
 reducedSeqplot = [];
@@ -174,6 +176,8 @@ disp('末角度之差之模:');disp(norm(NEWAnglesEnd-AnglesB));
 toc(times)
 AngleSequence(1,end)
 
+AllData = [AllData AngleSequence];
+
 % figure
 reducedSeqplot = [];
 for i=1:ceil(size(AngleSequence,2)/50):size(AngleSequence,2)
@@ -193,6 +197,7 @@ AnglesA = [90   18.6639 -120.3572    7.4600];
 AnglesB = [-87.7251  -15.0823  -27.8304   -7.0873];
 AngleSequence = FastReachP2P(AnglesA,AnglesB,35,35,35,35,25,25,25,25);
 
+AllData = [AllData AngleSequence];
 
 reducedSeqplot = [];
 for i=1:ceil(size(AngleSequence,2)/40):size(AngleSequence,2)

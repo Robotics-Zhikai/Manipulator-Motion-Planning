@@ -170,8 +170,8 @@ MatrixXd GetIntersection(MatrixXd qujianA, MatrixXd qujianB)
 //交集函数 输出的集合应该是有序的 从小到大
 //输入应该是行向量 输入向量的元素的最大个数是2
 {
-	cout << qujianA << endl;
-	cout << qujianB << endl;
+	//cout << qujianA << endl;
+	//cout << qujianB << endl;
 	
 
 
@@ -450,6 +450,22 @@ MatrixXd ExtractCols(MatrixXd mat, int colsbegin, int colsend)
 	{
 		result.col(k) = mat.col(i);
 		k++;
+	}
+	return result;
+}
+
+MatrixXd GetRow_beginnum_Interval_endnum(double beginnum,double interval,double endnum)
+{
+	vector <double> tmpresult;
+
+	for (double i = beginnum; i <= endnum; i = i + interval)
+	{
+		tmpresult.push_back(i);
+	}
+	MatrixXd result(1, tmpresult.size());
+	for (int i = 0; i < tmpresult.size(); i++)
+	{
+		result(i) = tmpresult[i];
 	}
 	return result;
 }

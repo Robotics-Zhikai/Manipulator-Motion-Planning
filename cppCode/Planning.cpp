@@ -481,7 +481,7 @@ MatrixXd FastReachP2P(Vector4d jointAnglesBegin, Vector4d JointAnglesEnd,double 
 	{
 		time(i) = i*tinterval;
 	}
-	cout << time;
+	//cout << time;
 	result = addMatrix2Matrix(time, ";", result);
 	return result;
 }
@@ -1212,8 +1212,8 @@ MatrixXd CarryAndReleaseTaskCartesianSpaceSub(MatrixXd StableRange,Vector4d Angl
 	{
 		MatrixXd jointAngle = AnglesBegin;
 		int YES;
-		cout << jointAngle << endl;
-		cout << StableRange << endl;
+		//cout << jointAngle << endl;
+		//cout << StableRange << endl;
 		vector <MatrixXd> StableTheta4 = groundAngleRangeTOtheta4Range(jointAngle(0), jointAngle(1), jointAngle(2), StableRange, YES);
 		if (YES == 0)
 			error("此时无法按照先搬运东西再卸载释放东西的顺序完成任务");
@@ -1233,7 +1233,7 @@ MatrixXd CarryAndReleaseTaskCartesianSpaceSub(MatrixXd StableRange,Vector4d Angl
 		jointAnglestmp(2) = jointAngle(2);
 		jointAnglestmp(3) = theta4selected;
 		ForwardKinematics(jointAnglestmp, Matrixbegin1, tmp);
-		cout << Matrixbegin1 << endl;
+		//cout << Matrixbegin1 << endl;
 		if (IsAnglesInLimitRange(jointAnglestmp) == 0)
 			error("程序逻辑出错");
 	}
@@ -1269,7 +1269,7 @@ MatrixXd CarryAndReleaseTaskCartesianSpaceSub(MatrixXd StableRange,Vector4d Angl
 		else
 			LeftUpper = Mid;
 		Mid.block(0,3,3,1)= (LeftUpper.block(0, 3, 3, 1) + RightUpper.block(0, 3, 3, 1)) / 2;
-		cout << Mid.block(0, 3, 3, 1) << endl;
+		//cout << Mid.block(0, 3, 3, 1) << endl;
 	}
 	Matrix4d Mid1 = LeftUpper;
 
@@ -1430,7 +1430,7 @@ MatrixXd CarryAndReleaseTaskCartesianSpaceSub(MatrixXd StableRange,Vector4d Angl
 	{
 		AngleSequence0 = addMatrix2Matrix(0, ";", AnglesBegin.transpose());
 	}
-	cout << Matrixbegin1 << endl;
+	//cout << Matrixbegin1 << endl;
 	AngleSequence1 = BucketRotateCenterLinearPlanningCPP(Matrixbegin1, Mid1, Vtheta1Max, Vtheta2Max, Vtheta3Max, Vtheta4Max, atheta1max, atheta2max, atheta3max, atheta4max, IsComplete);
 	if (IsComplete == 0)
 	{
@@ -1579,7 +1579,7 @@ void WholeSystemDEMO()
 		-0.5000, -0.8660, 0.0000, -300.0000,
 		0, 0, 0, 1;
 
-	MatrixXd Seq1 = BucketTipLinearPlanning(BeginT, EndT, 35, 35, 35, 35, 25, 25, 25, 25);
+	MatrixXd Seq1 = BucketTipLinearPlanning(BeginT, EndT, 35, 35, 35, 35, 25, 25, 25, 25); //先直线挖掘
 	///////////////////////////////////////////////////
 
 
@@ -1591,9 +1591,9 @@ void WholeSystemDEMO()
 	AnglesBegin << -85.6413, -10.6827, -78.5222, -60.7951;
 	Vector4d AnglesEnd;
 	AnglesEnd << 90.0000, 18.6639, -120.3572, 7.4600;
-	MatrixXd Seq2 = CarryAndReleaseTaskCartesianSpace(StableRange, AnglesBegin, AnglesEnd, 35, 35, 35, 35, 25, 25, 25, 25);
-	cout << AnglesBegin << endl;
-	cout << AnglesEnd << endl;
+	MatrixXd Seq2 = CarryAndReleaseTaskCartesianSpace(StableRange, AnglesBegin, AnglesEnd, 35, 35, 35, 35, 25, 25, 25, 25); //保持与释放
+	//cout << AnglesBegin << endl;
+	//cout << AnglesEnd << endl;
 	///////////////////////////////////////////////////
 
 
@@ -1602,7 +1602,19 @@ void WholeSystemDEMO()
 	AnglesA << 90, 18.6639, -120.3572, 7.4600;
 	Vector4d AnglesB;
 	AnglesB << -87.7251, -15.0823, -27.8304, -7.0873;
-	MatrixXd Seq3 = FastReachP2P(AnglesA, AnglesB, 35, 35, 35, 35, 25, 25, 25, 25);
+	MatrixXd Seq3 = FastReachP2P(AnglesA, AnglesB, 35, 35, 35, 35, 25, 25, 25, 25);  //快速回位
 	///////////////////////////////////////////////////
 
+	MatrixXd WholeSequence;
+	WholeSequence = addMatrix2Matrix(ExtractRows(Seq1, 1, 4), " ", ExtractRows(Seq2, 1, 4));
+	WholeSequence = addMatrix2Matrix(WholeSequence, " ", ExtractRows(Seq3, 1, 4));
+	MatrixXd times = GetRow_beginnum_Interval_endnum(0, tinterval, (double)((WholeSequence.cols() ))*tinterval);
+	//cout << times << endl;
+	WholeSequence = addMatrix2Matrix(times, ";", WholeSequence); //输出整个过程中带时间戳的各角度
+
+	cout << "带时间戳的各角度序列如下：" << endl;
+	for (int i = 0; i < WholeSequence.cols(); i++)
+	{
+		cout << WholeSequence.col(i).transpose() << endl;
+	}
 }
